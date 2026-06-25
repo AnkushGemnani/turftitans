@@ -1,0 +1,17 @@
+{
+  "name": "TurfTitans",
+  "short_name": "TurfTitans",
+  "description": "Auction-based cricket tournament management.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#06130d",
+  "theme_color": "#16a34a",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
