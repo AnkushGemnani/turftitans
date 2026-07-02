@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils/cn";
+import { DashboardGreeting } from "@/components/dashboard/dashboard-greeting";
 
 type ProfileSummary = {
   full_name: string;
@@ -92,15 +93,6 @@ export default async function DashboardPage() {
 
   if (!user) {
     redirect("/login");
-  }
-
-  // Get current hour to personalize greeting
-  const currentHour = new Date().getHours();
-  let greeting = "Good Morning";
-  if (currentHour >= 12 && currentHour < 17) {
-    greeting = "Good Afternoon";
-  } else if (currentHour >= 17) {
-    greeting = "Good Evening";
   }
 
   // Fetch data from database
@@ -330,9 +322,7 @@ export default async function DashboardPage() {
       ═══════════════════════════════════════════════════════════════ */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-black font-display tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-            {greeting}, {userDisplayName} 👋
-          </h1>
+          <DashboardGreeting userDisplayName={userDisplayName} />
           <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">
             Here&apos;s what&apos;s happening with your tournaments today.
           </p>
