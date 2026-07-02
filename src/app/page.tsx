@@ -133,7 +133,7 @@ export default function HomePage() {
               href="/sign-up"
               className="inline-flex h-9 items-center justify-center rounded-lg bg-pitch-500 hover:bg-pitch-600 text-pitch-950 px-4 text-xs font-black transition-all active:scale-98 shadow-[0_0_20px_rgba(16,185,129,0.2)]"
             >
-              Get Started
+              Sign Up
             </Link>
           </div>
         </header>

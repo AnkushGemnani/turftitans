@@ -386,13 +386,13 @@ export async function getSignedScreenshotUrlAction(paymentId: string): Promise<s
       .createSignedUrl(payment.screenshot_path, 60);
 
     if (signError) {
-      console.error("Error signing URL:", signError);
+      console.warn("Error signing URL:", signError.message);
       return null;
     }
 
     return signedData.signedUrl;
   } catch (e) {
-    console.error("Error getting signed screenshot URL:", e);
+    console.warn("Error getting signed screenshot URL:", e instanceof Error ? e.message : e);
     return null;
   }
 }
@@ -422,13 +422,13 @@ export async function getSignedUpiQrUrlAction(tournamentId: string): Promise<str
       .createSignedUrl(tournament.upi_qr_path, 60);
 
     if (signError) {
-      console.error("Error signing UPI QR URL:", signError);
+      console.warn("Error signing UPI QR URL:", signError.message);
       return null;
     }
 
     return signedData.signedUrl;
   } catch (e) {
-    console.error("Error getting signed UPI QR URL:", e);
+    console.warn("Error getting signed UPI QR URL:", e instanceof Error ? e.message : e);
     return null;
   }
 }

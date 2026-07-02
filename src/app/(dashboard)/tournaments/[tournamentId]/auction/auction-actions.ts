@@ -330,3 +330,91 @@ export async function returnPlayerAction(
     };
   }
 }
+
+export async function undoLastAuctionAction(
+  tournamentId: string
+): Promise<AuctionActionState> {
+  try {
+    const { tournament } = await verifyCreatorForAuction(tournamentId);
+
+    if (tournament.status !== "auction") {
+      return { status: "error", message: "Auction must be active to undo." };
+    }
+
+    const adminClient = createAdminClient();
+
+    // Get the most recent auction purchase/skip
+    const { data: lastPurchase, error: fetchError } = await adminClient
+      .from("auction_purchases")
+      .select("id, registration_id, status")
+      .eq("tournament_id", tournamentId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (fetchError) return { status: "error", message: fetchError.message };
+    if (!lastPurchase) {
+      return { status: "error", message: "No actions to undo." };
+    }
+
+    // Delete the most recent purchase/skip
+    const { error: deleteError } = await adminClient
+      .from("auction_purchases")
+      .delete()
+      .eq("id", lastPurchase.id);
+
+    if (deleteError) return { status: "error", message: deleteError.message };
+
+    revalidatePath(`/tournaments/${tournamentId}/auction`);
+    revalidatePath(`/tournaments/${tournamentId}/teams`);
+    return {
+      status: "success",
+      message: lastPurchase.status === "sold" ? "Undo: Player purchase removed." : "Undo: Player skip removed.",
+    };
+  } catch (e) {
+    return {
+      status: "error",
+      message: e instanceof Error ? e.message : "Failed to undo last action.",
+    };
+  }
+}
+
+export async function resetAuctionAction(
+  tournamentId: string
+): Promise<AuctionActionState> {
+  try {
+    const { userClient } = await verifyCreatorForAuction(tournamentId);
+
+    const adminClient = createAdminClient();
+
+    // Delete all purchases and skips for this tournament
+    const { error: deleteError } = await adminClient
+      .from("auction_purchases")
+      .delete()
+      .eq("tournament_id", tournamentId);
+
+    if (deleteError) return { status: "error", message: deleteError.message };
+
+    // Update the tournament status back to "locked"
+    const { error: updateError } = await userClient
+      .from("tournaments")
+      .update({ status: "locked" })
+      .eq("id", tournamentId);
+
+    if (updateError) return { status: "error", message: updateError.message };
+
+    revalidatePath(`/tournaments/${tournamentId}`);
+    revalidatePath(`/tournaments/${tournamentId}/auction`);
+    revalidatePath(`/tournaments/${tournamentId}/teams`);
+    return {
+      status: "success",
+      message: "Auction reset successfully. All purchases cleared and status set back to Locked.",
+    };
+  } catch (e) {
+    return {
+      status: "error",
+      message: e instanceof Error ? e.message : "Failed to reset auction.",
+    };
+  }
+}
+

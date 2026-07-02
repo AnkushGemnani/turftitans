@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 import {
   Shuffle,
   Hammer,
@@ -17,12 +18,16 @@ import {
   Zap,
   Crown,
   UserCircle,
+  Undo,
+  Trash2,
 } from "lucide-react";
 import {
   sellPlayerAction,
   skipPlayerAction,
   returnPlayerAction,
   completeAuctionAction,
+  undoLastAuctionAction,
+  resetAuctionAction,
 } from "@/app/(dashboard)/tournaments/[tournamentId]/auction/auction-actions";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -89,6 +94,13 @@ const ROLE_LABELS: Record<AuctionPlayer["role"], string> = {
   wicket_keeper: "Wicket Keeper",
 };
 
+const ROLE_ORDER: Record<AuctionPlayer["role"], number> = {
+  batsman: 1,
+  bowler: 2,
+  all_rounder: 3,
+  wicket_keeper: 4,
+};
+
 const ROLE_COLORS: Record<AuctionPlayer["role"], string> = {
   batsman: "text-blue-600 dark:text-blue-400 bg-blue-500/10 border-blue-500/20",
   bowler: "text-orange-600 dark:text-orange-400 bg-orange-500/10 border-orange-500/20",
@@ -139,13 +151,17 @@ export function AuctionConsole({
   const [bidAmount, setBidAmount] = useState("");
   const [actionMsg, setActionMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [fromSkipped, setFromSkipped] = useState(false);
+  const [sortBy, setSortBy] = useState<"default" | "name" | "role" | "newest">("default");
+  const [isShuffling, setIsShuffling] = useState(false);
+  const [shufflingPlayer, setShufflingPlayer] = useState<AuctionPlayer | null>(null);
+  const [sidebarTab, setSidebarTab] = useState<"available" | "skipped" | "sold">("available");
 
   // ─── Player Pool Logic ───────────────────────────────────────────────────
   const soldPlayers = players.filter((p) => p.purchaseStatus === "sold");
   const skippedPlayers = players.filter((p) => p.purchaseStatus === "skipped");
   const primaryPool = players.filter((p) => p.purchaseStatus === null);
-  const availablePool = primaryPool.length > 0 ? primaryPool : skippedPlayers;
   const totalPlayers = players.length;
   const soldCount = soldPlayers.length;
   const skippedCount = skippedPlayers.length;
@@ -153,17 +169,67 @@ export function AuctionConsole({
   const progress = totalPlayers > 0 ? Math.round((soldCount / totalPlayers) * 100) : 0;
   const allProcessed = primaryPool.length === 0 && skippedPlayers.length === 0;
 
+  const activePool =
+    sidebarTab === "available"
+      ? primaryPool
+      : sidebarTab === "skipped"
+      ? skippedPlayers
+      : soldPlayers;
+
+  // Auto-switch to skipped/unsold tab if available pool is empty and skipped is not empty
+  useEffect(() => {
+    if (primaryPool.length === 0 && skippedPlayers.length > 0 && sidebarTab === "available") {
+      setSidebarTab("skipped");
+    }
+  }, [primaryPool.length, skippedPlayers.length, sidebarTab]);
+
+  const handlePlayerSelect = useCallback((player: AuctionPlayer, fromUnsold: boolean) => {
+    setSelectedPlayer(player);
+    setBidAmount("");
+    setSelectedTeamId("");
+    setActionMsg(null);
+    setFromSkipped(fromUnsold);
+  }, []);
+
   // ─── Random Pick ────────────────────────────────────────────────────────
   const pickRandom = useCallback(() => {
     const pool = primaryPool.length > 0 ? primaryPool : skippedPlayers;
     if (pool.length === 0) return;
-    const idx = Math.floor(Math.random() * pool.length);
-    setFromSkipped(primaryPool.length === 0);
-    setSelectedPlayer(pool[idx]);
+
+    setIsShuffling(true);
     setBidAmount("");
     setSelectedTeamId("");
     setActionMsg(null);
-  }, [primaryPool, skippedPlayers]);
+
+    let count = 0;
+    const maxTicks = 15;
+    const baseDelay = 80;
+
+    const tick = () => {
+      const idx = Math.floor(Math.random() * pool.length);
+      setShufflingPlayer(pool[idx]);
+
+      count++;
+      if (count < maxTicks) {
+        const delay = baseDelay + Math.pow(count, 1.8) * 4;
+        setTimeout(tick, delay);
+      } else {
+        const finalIdx = Math.floor(Math.random() * pool.length);
+        const finalPlayer = pool[finalIdx];
+
+        setIsShuffling(false);
+        setShufflingPlayer(null);
+        const isFromSkipped = primaryPool.length === 0;
+        setFromSkipped(isFromSkipped);
+        if (isFromSkipped) {
+          setSidebarTab("skipped");
+        }
+        setSelectedPlayer(finalPlayer);
+      }
+    };
+
+    setTimeout(tick, baseDelay);
+  }, [primaryPool, skippedPlayers, setSidebarTab]);
 
   // Auto-clear actionMsg after 4s
   useEffect(() => {
@@ -251,10 +317,161 @@ export function AuctionConsole({
     });
   }
 
+  function handleUndo() {
+    startTransition(async () => {
+      const result = await undoLastAuctionAction(tournamentId);
+      setActionMsg(
+        result.status !== "idle"
+          ? { type: result.status, text: result.message }
+          : null
+      );
+      if (result.status === "success") {
+        setSelectedPlayer(null);
+        router.refresh();
+      }
+    });
+  }
+
+  function handleReset() {
+    startTransition(async () => {
+      const result = await resetAuctionAction(tournamentId);
+      setActionMsg(
+        result.status !== "idle"
+          ? { type: result.status, text: result.message }
+          : null
+      );
+      if (result.status === "success") {
+        setShowResetConfirm(false);
+        setSelectedPlayer(null);
+        router.refresh();
+      }
+    });
+  }
+
   const selectedTeam = teams.find((t) => t.id === selectedTeamId);
   const bidAmountNum = parseInt(bidAmount.replace(/[^0-9]/g, ""), 10);
   const isOverBudget =
     selectedTeam && !isNaN(bidAmountNum) && bidAmountNum > selectedTeam.remainingBudget;
+
+  const renderPlayerList = () => {
+    const sortedPool = [...activePool].sort((a, b) => {
+      if (sortBy === "name") {
+        return a.name.localeCompare(b.name);
+      }
+      if (sortBy === "role") {
+        const orderA = ROLE_ORDER[a.role];
+        const orderB = ROLE_ORDER[b.role];
+        if (orderA !== orderB) {
+          return orderA - orderB;
+        }
+        return a.name.localeCompare(b.name);
+      }
+      if (sortBy === "newest") {
+        return new Date(b.registeredAt).getTime() - new Date(a.registeredAt).getTime();
+      }
+      return 0;
+    });
+
+    if (sortedPool.length === 0) {
+      const emptyMessages = {
+        available: "All players processed!",
+        skipped: "No skipped players.",
+        sold: "No players sold yet.",
+      };
+      return (
+        <div className="glass-card rounded-xl p-4 text-center border border-dashed border-slate-300 dark:border-white/10">
+          <p className="text-xs text-slate-500">{emptyMessages[sidebarTab]}</p>
+        </div>
+      );
+    }
+
+    const renderPlayerButton = (player: AuctionPlayer) => {
+      const isUnsoldTab = sidebarTab === "skipped";
+      const isSelected = selectedPlayer?.registrationId === player.registrationId;
+      return (
+        <button
+          key={player.registrationId}
+          onClick={() => handlePlayerSelect(player, isUnsoldTab)}
+          disabled={!isCreator || isCompleted || isPending}
+          className={`w-full flex items-center gap-3 rounded-xl p-3 text-left transition border ${
+            isSelected
+              ? "border-pitch-500/40 bg-pitch-500/10"
+              : "border-slate-200/50 dark:border-white/5 bg-white/50 dark:bg-white/[0.02] hover:border-pitch-400/30 hover:bg-pitch-500/5"
+          } disabled:cursor-default`}
+        >
+          <PlayerAvatar name={player.name} avatarUrl={player.avatarUrl} size="sm" />
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{player.name}</p>
+            <span className={`mt-0.5 inline-flex items-center rounded-md border px-1.5 py-0.5 text-[9px] font-bold ${ROLE_COLORS[player.role]}`}>
+              {ROLE_LABELS[player.role]}
+            </span>
+          </div>
+        </button>
+      );
+    };
+
+    const renderSoldPlayerCard = (player: AuctionPlayer) => {
+      const team = teams.find((t) => t.id === player.purchaseTeamId);
+      return (
+        <div key={player.registrationId} className="flex items-center gap-3 rounded-xl p-3 bg-pitch-500/5 border border-pitch-500/10">
+          <PlayerAvatar name={player.name} avatarUrl={player.avatarUrl} size="sm" />
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{player.name}</p>
+            <p className="text-[10px] text-pitch-600 dark:text-pitch-400 font-bold mt-0.5">
+              {team?.name} · {formatAmount(player.purchaseAmount)}
+            </p>
+          </div>
+          {isCreator && !isCompleted && (
+            <button
+              onClick={(e) => { e.stopPropagation(); handleReturn(player.registrationId); }}
+              disabled={isPending}
+              className="h-8 w-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-amber-500 hover:bg-amber-500/10 border border-transparent hover:border-amber-500/20 transition shrink-0 bg-white/50 dark:bg-white/[0.02]"
+              title="Return to pool"
+            >
+              <RotateCcw className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      );
+    };
+
+    const renderItem = (player: AuctionPlayer) => {
+      if (sidebarTab === "sold") {
+        return renderSoldPlayerCard(player);
+      }
+      return renderPlayerButton(player);
+    };
+
+    if (sortBy === "role") {
+      return (
+        <div className="space-y-4">
+          {(["batsman", "bowler", "all_rounder", "wicket_keeper"] as const).map((role) => {
+            const rolePlayers = sortedPool.filter((p) => p.role === role);
+            if (rolePlayers.length === 0) return null;
+            return (
+              <div key={role} className="space-y-1.5 pb-2">
+                <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 px-1 pt-1.5 flex items-center justify-between">
+                  <span>{role === "batsman" ? "Batsmen" : role === "bowler" ? "Bowlers" : role === "all_rounder" ? "All-Rounders" : "Wicket Keepers"}</span>
+                  <span className="bg-slate-200/60 dark:bg-white/5 px-1.5 py-0.5 rounded-md text-[9px]">
+                    {rolePlayers.length}
+                  </span>
+                </div>
+                <div className="space-y-2">
+                  {rolePlayers.map((player) => renderItem(player))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-2">
+        {sortedPool.map((player) => renderItem(player))}
+      </div>
+    );
+  };
 
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
@@ -278,15 +495,39 @@ export function AuctionConsole({
           </p>
         </div>
 
-        {isCreator && !isCompleted && (
-          <button
-            onClick={() => setShowCompleteConfirm(true)}
-            disabled={isPending}
-            className="inline-flex h-9 items-center gap-2 rounded-xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-white/[0.03] hover:bg-slate-50 dark:hover:bg-white/[0.06] text-slate-700 dark:text-slate-300 px-4 text-xs font-bold transition shrink-0"
-          >
-            <CheckCircle2 className="h-4 w-4" />
-            Complete Auction
-          </button>
+        {isCreator && (
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            {!isCompleted && (
+              <>
+                <button
+                  onClick={handleUndo}
+                  disabled={isPending || history.length === 0}
+                  className="inline-flex h-9 items-center gap-2 rounded-xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-white/[0.03] hover:bg-slate-50 dark:hover:bg-white/[0.06] text-slate-700 dark:text-slate-300 px-4 text-xs font-bold transition shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
+                  title="Undo the last auction action"
+                >
+                  <Undo className="h-4 w-4" />
+                  Undo Last
+                </button>
+                <button
+                  onClick={() => setShowCompleteConfirm(true)}
+                  disabled={isPending}
+                  className="inline-flex h-9 items-center gap-2 rounded-xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-white/[0.03] hover:bg-slate-50 dark:hover:bg-white/[0.06] text-slate-700 dark:text-slate-300 px-4 text-xs font-bold transition shrink-0"
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  Complete Auction
+                </button>
+              </>
+            )}
+            <button
+              onClick={() => setShowResetConfirm(true)}
+              disabled={isPending}
+              className="inline-flex h-9 items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 px-4 text-xs font-bold transition shrink-0"
+              title="Reset the entire auction"
+            >
+              <Trash2 className="h-4 w-4" />
+              Reset Auction
+            </button>
+          </div>
         )}
       </div>
 
@@ -312,6 +553,36 @@ export function AuctionConsole({
             </button>
             <button
               onClick={() => setShowCompleteConfirm(false)}
+              className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 dark:border-white/10 px-4 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 transition"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Reset Confirm Modal */}
+      {showResetConfirm && (
+        <div className="glass-card rounded-2xl p-5 border border-red-500/20 bg-red-500/5 space-y-3">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold text-slate-900 dark:text-white text-sm">Reset Auction</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                This will delete ALL player purchases and skipped records in the database. The tournament status will be set back to Locked, allowing you to edit teams or start the auction fresh. This action cannot be undone. Are you sure?
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={handleReset}
+              disabled={isPending}
+              className="inline-flex h-9 items-center gap-2 rounded-lg bg-red-600 hover:bg-red-500 text-white px-4 text-xs font-black transition disabled:opacity-50"
+            >
+              {isPending ? "Resetting..." : "Yes, Reset Auction"}
+            </button>
+            <button
+              onClick={() => setShowResetConfirm(false)}
               className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 dark:border-white/10 px-4 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 transition"
             >
               Cancel
@@ -368,81 +639,66 @@ export function AuctionConsole({
 
         {/* Left: Player Pool */}
         <div className="space-y-3">
-          <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-            Player Pool
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+              Player Pool
+            </h3>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+              className="text-[10px] font-bold bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg px-2 py-1 text-slate-600 dark:text-slate-300 focus:outline-none focus:border-pitch-500 transition cursor-pointer"
+            >
+              <option value="default">Default</option>
+              <option value="name">Name (A-Z)</option>
+              <option value="role">Role</option>
+              <option value="newest">Newest</option>
+            </select>
+          </div>
 
-          {availablePool.length === 0 && !allProcessed && (
-            <div className="glass-card rounded-xl p-4 text-center border border-dashed border-slate-300 dark:border-white/10">
-              <p className="text-xs text-slate-500">All players processed!</p>
-            </div>
-          )}
+          {/* Category Tabs */}
+          <div className="grid grid-cols-3 gap-1 bg-slate-100 dark:bg-white/5 p-1 rounded-xl text-[10px] font-bold">
+            <button
+              onClick={() => setSidebarTab("available")}
+              className={`py-1.5 rounded-lg text-center transition-all ${
+                sidebarTab === "available"
+                  ? "bg-white dark:bg-white/10 text-slate-900 dark:text-white shadow-sm"
+                  : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+              }`}
+            >
+              Pool ({availableCount})
+            </button>
+            <button
+              onClick={() => setSidebarTab("skipped")}
+              className={`py-1.5 rounded-lg text-center transition-all ${
+                sidebarTab === "skipped"
+                  ? "bg-white dark:bg-white/10 text-slate-900 dark:text-white shadow-sm"
+                  : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+              }`}
+            >
+              Unsold ({skippedCount})
+            </button>
+            <button
+              onClick={() => setSidebarTab("sold")}
+              className={`py-1.5 rounded-lg text-center transition-all ${
+                sidebarTab === "sold"
+                  ? "bg-white dark:bg-white/10 text-slate-900 dark:text-white shadow-sm"
+                  : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+              }`}
+            >
+              Sold ({soldCount})
+            </button>
+          </div>
 
           {/* Skipped players re-enter label */}
-          {fromSkipped && primaryPool.length === 0 && skippedPlayers.length > 0 && (
+          {fromSkipped && primaryPool.length === 0 && skippedPlayers.length > 0 && sidebarTab === "skipped" && (
             <div className="flex items-center gap-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 text-[10px] font-bold text-amber-600 dark:text-amber-400">
               <SkipForward className="h-3 w-3" />
               Drawing from skipped players
             </div>
           )}
 
-          <div className="space-y-2 max-h-[calc(100vh-380px)] overflow-y-auto pr-1 scrollbar-thin">
-            {availablePool.map((player) => (
-              <button
-                key={player.registrationId}
-                onClick={() => {
-                  setSelectedPlayer(player);
-                  setBidAmount("");
-                  setSelectedTeamId("");
-                  setActionMsg(null);
-                }}
-                disabled={!isCreator || isCompleted || isPending}
-                className={`w-full flex items-center gap-3 rounded-xl p-3 text-left transition border ${
-                  selectedPlayer?.registrationId === player.registrationId
-                    ? "border-pitch-500/40 bg-pitch-500/10"
-                    : "border-slate-200/50 dark:border-white/5 bg-white/50 dark:bg-white/[0.02] hover:border-pitch-400/30 hover:bg-pitch-500/5"
-                } disabled:cursor-default`}
-              >
-                <PlayerAvatar name={player.name} avatarUrl={player.avatarUrl} size="sm" />
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{player.name}</p>
-                  <span className={`mt-0.5 inline-flex items-center rounded-md border px-1.5 py-0.5 text-[9px] font-bold ${ROLE_COLORS[player.role]}`}>
-                    {ROLE_LABELS[player.role]}
-                  </span>
-                </div>
-              </button>
-            ))}
-
-            {/* Sold players (collapsed) */}
-            {soldPlayers.length > 0 && (
-              <div className="pt-2 border-t border-slate-200/50 dark:border-white/5">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Sold ({soldCount})</p>
-                <div className="space-y-1.5">
-                  {soldPlayers.map((player) => {
-                    const team = teams.find((t) => t.id === player.purchaseTeamId);
-                    return (
-                      <div key={player.registrationId} className="flex items-center gap-2 rounded-lg p-2 bg-pitch-500/5 border border-pitch-500/10">
-                        <PlayerAvatar name={player.name} avatarUrl={player.avatarUrl} size="sm" />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-[10px] font-bold text-slate-700 dark:text-slate-300 truncate">{player.name}</p>
-                          <p className="text-[9px] text-pitch-600 dark:text-pitch-400">{team?.name} · {formatAmount(player.purchaseAmount)}</p>
-                        </div>
-                        {isCreator && !isCompleted && (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleReturn(player.registrationId); }}
-                            disabled={isPending}
-                            className="h-6 w-6 rounded flex items-center justify-center text-slate-400 hover:text-amber-500 hover:bg-amber-500/10 transition shrink-0"
-                            title="Return to pool"
-                          >
-                            <RotateCcw className="h-3 w-3" />
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+          <div className="space-y-2 max-h-[calc(100vh-420px)] overflow-y-auto pr-1 scrollbar-thin">
+            {renderPlayerList()}
           </div>
         </div>
 
@@ -452,21 +708,78 @@ export function AuctionConsole({
           {isCreator && !isCompleted && (
             <button
               onClick={pickRandom}
-              disabled={isPending || availablePool.length === 0}
+              disabled={isPending || allProcessed}
               className="w-full inline-flex h-14 items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-pitch-500 to-emerald-400 hover:brightness-110 text-pitch-950 font-black text-base shadow-lg shadow-pitch-500/20 transition active:scale-98 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Shuffle className="h-5 w-5" />
-              {availablePool.length === 0 ? "All Players Processed" : "Pick Random Player"}
+              {allProcessed ? "All Players Processed" : "Pick Random Player"}
             </button>
           )}
 
-          {/* Selected Player Card */}
-          {selectedPlayer ? (
-            <div className="glass-card rounded-2xl overflow-hidden border border-pitch-500/20 shadow-[0_0_40px_rgba(16,185,129,0.08)]">
+          {/* Selected Player / Shuffling Card */}
+          {isShuffling && shufflingPlayer ? (
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="glass-card rounded-2xl overflow-hidden border-2 border-pitch-500/40 bg-[#040806] shadow-[0_0_50px_rgba(16,185,129,0.2)] p-8 text-center relative min-h-[350px] flex flex-col items-center justify-center"
+            >
+              {/* Scanning laser line */}
+              <motion.div
+                animate={{ y: [-100, 100, -100] }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-pitch-400 to-transparent shadow-[0_0_15px_rgba(16,185,129,0.8)] pointer-events-none"
+              />
+
+              {/* Hologram loading rings */}
+              <div className="absolute w-48 h-48 border border-dashed border-pitch-500/20 rounded-full animate-[spin_10s_linear_infinite]" />
+              <div className="absolute w-40 h-40 border border-pitch-500/10 rounded-full animate-[spin_6s_linear_infinite_reverse]" />
+
+              <div className="relative z-10 space-y-6">
+                <motion.div
+                  key={shufflingPlayer.registrationId}
+                  initial={{ scale: 0.8, opacity: 0.5, filter: "blur(4px)" }}
+                  animate={{ scale: 1, opacity: 1, filter: "blur(0px)" }}
+                  className="flex flex-col items-center"
+                >
+                  <PlayerAvatar name={shufflingPlayer.name} avatarUrl={shufflingPlayer.avatarUrl} size="lg" />
+                  <p className="text-2xl font-black text-white mt-4 tracking-tight drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">
+                    {shufflingPlayer.name}
+                  </p>
+                  <span className={`mt-2 inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-bold ${ROLE_COLORS[shufflingPlayer.role]}`}>
+                    {ROLE_LABELS[shufflingPlayer.role]}
+                  </span>
+                </motion.div>
+
+                <div className="space-y-1">
+                  <div className="flex items-center justify-center gap-1.5 text-pitch-400 text-xs font-black uppercase tracking-[0.2em] animate-pulse">
+                    <Zap className="h-4 w-4 text-pitch-400 animate-spin" />
+                    <span>Analyzing Pool...</span>
+                  </div>
+                  <p className="text-[10px] text-slate-500 uppercase tracking-widest">
+                     IPL-STYLE SHUFFLE IN PROGRESS
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          ) : selectedPlayer ? (
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, rotateY: -30 }}
+              animate={{ scale: 1, opacity: 1, rotateY: 0 }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
+              className="glass-card rounded-2xl overflow-hidden border border-pitch-500/20 shadow-[0_0_40px_rgba(16,185,129,0.08)] relative"
+            >
+              {/* Reveal spark flash */}
+              <motion.div
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: [1, 3.5], opacity: [0.8, 0] }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+                className="absolute top-[80px] left-1/2 -translate-x-1/2 w-32 h-32 rounded-full bg-pitch-400/25 blur-md pointer-events-none z-0"
+              />
+
               {/* Gradient header */}
               <div className="bg-gradient-to-br from-pitch-600 via-pitch-700 to-pitch-900 dark:from-pitch-800 dark:via-pitch-900 dark:to-black p-6 relative overflow-hidden">
                 <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(16,185,129,0.3)_0%,transparent_70%)]" />
-                <div className="relative flex items-center gap-5">
+                <div className="relative flex items-center gap-5 z-10">
                   <div className="relative">
                     <PlayerAvatar name={selectedPlayer.name} avatarUrl={selectedPlayer.avatarUrl} size="lg" />
                     <span className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-amber-400 border-2 border-white flex items-center justify-center">
@@ -591,14 +904,14 @@ export function AuctionConsole({
                   {isCompleted ? "Auction is completed. Rosters are locked." : "Viewing mode only."}
                 </div>
               )}
-            </div>
+            </motion.div>
           ) : (
             <div className="glass-card rounded-2xl p-10 text-center border border-dashed border-slate-300 dark:border-white/10">
               <UserCircle className="h-12 w-12 mx-auto text-slate-300 dark:text-white/10 mb-3" />
               <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">
                 {isCreator ? "Pick a player to begin bidding" : "Waiting for next player..."}
               </p>
-              {isCreator && !isCompleted && availablePool.length > 0 && (
+              {isCreator && !isCompleted && !allProcessed && (
                 <p className="text-xs text-slate-400 mt-1">Click &quot;Pick Random Player&quot; above</p>
               )}
             </div>

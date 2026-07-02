@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence, animate } from "framer-motion";
-import { X, Sparkles } from "lucide-react";
+import { X, Sparkles, Trophy } from "lucide-react";
 
 interface CricketLoaderProps {
   onComplete: () => void;
@@ -326,23 +326,9 @@ export function CricketLoader({ onComplete }: CricketLoaderProps) {
                 initial={{ rotateY: -90 }}
                 animate={{ rotateY: 0 }}
                 transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 }}
-                className="h-24 w-24 rounded-2xl bg-gradient-to-br from-pitch-950 to-[#041a0e] flex items-center justify-center shadow-[0_0_50px_rgba(16,185,129,0.3)] border border-pitch-500/40 relative z-10"
+                className="h-24 w-24 rounded-2xl bg-gradient-to-br from-pitch-500 to-emerald-400 flex items-center justify-center shadow-[0_0_50px_rgba(16,185,129,0.4)] border border-pitch-400/20 relative z-10"
               >
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-pitch-400">
-                  <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
-                  <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
-                  <path d="M4 22h16" />
-                  <path d="M10 14.66V17c0 .55-.45 1-1 1H4v2h16v-2h-5c-.55 0-1-.45-1-1v-2.34" />
-                  <path d="M12 2a6 6 0 0 1 6 6v5a6 6 0 0 1-6 6 6 6 0 0 1-6-6V8a6 6 0 0 1 6-6Z" fill="url(#trophyRevealGrad)" stroke="none" />
-                  <path d="M12 2a6 6 0 0 1 6 6v5a6 6 0 0 1-6 6 6 6 0 0 1-6-6V8a6 6 0 0 1 6-6Z" />
-                  
-                  <defs>
-                    <linearGradient id="trophyRevealGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#10b981" />
-                      <stop offset="100%" stopColor="#34d399" />
-                    </linearGradient>
-                  </defs>
-                </svg>
+                <Trophy className="h-12 w-12 text-pitch-950" strokeWidth={1.5} />
               </motion.div>
             </div>
 

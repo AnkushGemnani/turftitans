@@ -73,7 +73,7 @@ export default async function PaymentsPage({ params }: PaymentsPageProps) {
     .order("created_at", { ascending: false });
 
   if (paymentsError) {
-    console.error("Error fetching payments:", paymentsError);
+    console.warn("Error fetching payments:", paymentsError.message);
   }
 
   const paymentsRaw = (paymentsData || []) as unknown as PaymentRow[];

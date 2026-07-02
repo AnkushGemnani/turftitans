@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Trophy, Bell, MessageSquare, Plus, Search } from "lucide-react";
+import { Trophy, Plus } from "lucide-react";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { NavLinks } from "@/components/dashboard/nav-links";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { createClient } from "@/lib/supabase/server";
+import { HeaderSearch } from "@/components/dashboard/header-search";
+import { HeaderNotifications } from "@/components/dashboard/header-notifications";
+import { HeaderMessages } from "@/components/dashboard/header-messages";
 
 export const dynamic = "force-dynamic";
 
@@ -89,28 +92,13 @@ export default async function DashboardLayout({
           </Link>
 
           {/* Search Bar (Centered on desktop) */}
-          <div className="hidden sm:flex items-center relative max-w-md w-full mx-4">
-            <Search className="absolute left-3.5 h-4 w-4 text-slate-400 dark:text-slate-500 pointer-events-none" />
-            <input
-              type="text"
-              placeholder="Search tournaments, players..."
-              className="w-full bg-slate-100 dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10 focus:border-pitch-500 dark:focus:border-pitch-400 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 rounded-xl py-2 pl-10 pr-12 text-xs font-medium outline-none transition-all duration-200"
-            />
-            <kbd className="absolute right-3 inline-flex items-center gap-0.5 rounded border border-slate-200 dark:border-white/10 bg-slate-200/50 dark:bg-white/5 px-1.5 py-0.5 text-[9px] font-bold text-slate-500 dark:text-slate-400 select-none pointer-events-none">
-              ⌘K
-            </kbd>
-          </div>
+          <HeaderSearch />
 
           {/* User profile & Actions */}
           <div className="flex items-center gap-4">
             {/* Quick action message/notifications */}
-            <button className="relative p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.04] transition">
-              <Bell className="h-4.5 w-4.5" />
-              <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-pitch-500 border border-white dark:border-pitch-950" />
-            </button>
-            <button className="relative p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.04] transition">
-              <MessageSquare className="h-4.5 w-4.5" />
-            </button>
+            <HeaderNotifications userId={user.id} />
+            <HeaderMessages />
             
             <div className="h-6 w-px bg-slate-200 dark:bg-white/10 hidden sm:block" />
 

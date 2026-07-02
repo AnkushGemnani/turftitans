@@ -59,6 +59,10 @@ export default async function MyTournamentsPage({ searchParams }: MyTournamentsP
 
   const tournaments = (data ?? []) as MyTournament[];
 
+  if (tournaments.length === 1 && action) {
+    redirect(`/tournaments/${tournaments[0].id}/${action === "reports" ? "export" : action}`);
+  }
+
   const getActionLabel = (act: string) => {
     switch (act) {
       case "registrations":

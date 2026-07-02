@@ -348,31 +348,50 @@ export default async function DashboardPage() {
           Quick Actions
         </h2>
         
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-          {[
-            { label: "Create Tournament", href: "/tournaments/create", icon: PlusCircle, color: "text-pitch-500 border-pitch-500/20 bg-pitch-500/5 hover:bg-pitch-500/10" },
-            { label: "Browse Tournaments", href: "/tournaments", icon: Search, color: "text-blue-500 border-blue-500/20 bg-blue-500/5 hover:bg-blue-500/10" },
-            { label: "Manage Registrations", href: "/tournaments/my?action=registrations", icon: UserCheck, color: "text-purple-500 border-purple-500/20 bg-purple-500/5 hover:bg-purple-500/10" },
-            { label: "Verify Payments", href: "/tournaments/my?action=payments", icon: CreditCard, color: "text-amber-500 border-amber-500/20 bg-amber-500/5 hover:bg-amber-500/10" },
-            { label: "Start Auction", href: "/tournaments/my?action=auction", icon: Gavel, color: "text-emerald-500 border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500/10" },
-          ].map((act, i) => {
-            const Icon = act.icon;
-            return (
-              <Link
-                key={i}
-                href={act.href}
-                className={cn(
-                  "flex flex-col items-center justify-between p-4.5 rounded-xl border transition-all duration-200 text-center space-y-3 cursor-pointer group active:scale-98",
-                  act.color
-                )}
-              >
-                <Icon className="h-6 w-6 group-hover:scale-110 transition-transform" />
-                <div>
-                  <p className="text-[10px] font-bold text-slate-800 dark:text-slate-200 tracking-tight leading-tight">{act.label}</p>
-                </div>
-              </Link>
-            );
-          })}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+          {(() => {
+            const singleTournamentId = createdTournaments && createdTournaments.length === 1 ? createdTournaments[0].id : null;
+            const actions = [
+              { label: "Create Tournament", href: "/tournaments/create", icon: PlusCircle, color: "text-pitch-500 border-pitch-500/20 bg-pitch-500/5 hover:bg-pitch-500/10" },
+              { label: "Browse Tournaments", href: "/tournaments", icon: Search, color: "text-blue-500 border-blue-500/20 bg-blue-500/5 hover:bg-blue-500/10" },
+              { 
+                label: "Manage Registrations", 
+                href: singleTournamentId ? `/tournaments/${singleTournamentId}/registrations` : "/tournaments/my?action=registrations", 
+                icon: UserCheck, 
+                color: "text-purple-500 border-purple-500/20 bg-purple-500/5 hover:bg-purple-500/10" 
+              },
+              { 
+                label: "Verify Payments", 
+                href: singleTournamentId ? `/tournaments/${singleTournamentId}/payments` : "/tournaments/my?action=payments", 
+                icon: CreditCard, 
+                color: "text-amber-500 border-amber-500/20 bg-amber-500/5 hover:bg-amber-500/10" 
+              },
+              { 
+                label: "Start Auction", 
+                href: singleTournamentId ? `/tournaments/${singleTournamentId}/auction` : "/tournaments/my?action=auction", 
+                icon: Gavel, 
+                color: "text-emerald-500 border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500/10" 
+              },
+            ];
+            return actions.map((act, i) => {
+              const Icon = act.icon;
+              return (
+                <Link
+                  key={i}
+                  href={act.href}
+                  className={cn(
+                    "flex flex-col items-center justify-between p-4.5 rounded-xl border transition-all duration-200 text-center space-y-3 cursor-pointer group active:scale-98",
+                    act.color
+                  )}
+                >
+                  <Icon className="h-6 w-6 group-hover:scale-110 transition-transform" />
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-800 dark:text-slate-200 tracking-tight leading-tight">{act.label}</p>
+                  </div>
+                </Link>
+              );
+            });
+          })()}
         </div>
       </div>
 
@@ -518,27 +537,33 @@ export default async function DashboardPage() {
                       className="glass-card rounded-xl overflow-hidden border border-slate-200/50 dark:border-white/5 bg-white dark:bg-white/[0.02] shadow-sm flex flex-col justify-between"
                     >
                       {/* Banner / Card Header */}
-                      <div className="relative h-28 bg-slate-900 overflow-hidden shrink-0">
+                      <div className="relative h-28 bg-slate-100 dark:bg-slate-900 overflow-hidden shrink-0 border-b border-slate-200/50 dark:border-white/5">
                         {tournament.banner_url ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={tournament.banner_url}
-                            alt={tournament.name}
-                            className="w-full h-full object-cover opacity-70"
-                          />
+                          <>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={tournament.banner_url}
+                              alt={tournament.name}
+                              className="w-full h-full object-cover opacity-70"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
+                          </>
                         ) : (
-                          // High-fidelity fallback gradient graphic
-                          <div className="absolute inset-0 bg-gradient-to-tr from-slate-950 via-pitch-950 to-slate-950 flex items-center justify-center p-4">
-                            <span className="text-[10px] font-black tracking-widest text-pitch-500/30 font-display">
+                          // High-fidelity fallback gradient graphic (Responsive light/dark mode)
+                          <div className="absolute inset-0 bg-[linear-gradient(135deg,#e8f5ed,#f8fafc)] dark:bg-[linear-gradient(135deg,#0c1d13,#030604)] flex items-center justify-center p-4">
+                            <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.01)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:16px_16px] opacity-70" />
+                            <span className="text-[9px] font-black tracking-widest text-pitch-650/40 dark:text-pitch-500/20 font-display">
                               {tournament.name.toUpperCase()}
                             </span>
                           </div>
                         )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
                         
                         {/* Title overlay */}
                         <div className="absolute bottom-3 left-4">
-                          <h4 className="text-sm font-black text-white tracking-tight drop-shadow-md">
+                          <h4 className={cn(
+                            "text-sm font-black tracking-tight",
+                            tournament.banner_url ? "text-white drop-shadow-md" : "text-slate-900 dark:text-white"
+                          )}>
                             {tournament.name}
                           </h4>
                         </div>
@@ -546,9 +571,10 @@ export default async function DashboardPage() {
                         {/* Status Tag Overlay */}
                         <span className={cn(
                           "absolute top-3 right-4 rounded-lg px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider",
+                          !tournament.banner_url && "bg-white/80 dark:bg-pitch-950/80 backdrop-blur-sm",
                           isUpcoming
-                            ? "bg-amber-500/10 border border-amber-500/20 text-amber-500"
-                            : "bg-emerald-500/10 border border-emerald-500/20 text-emerald-500"
+                            ? "border border-amber-500/20 text-amber-600 dark:text-amber-500"
+                            : "border border-emerald-500/20 text-emerald-600 dark:text-emerald-500"
                         )}>
                           {isUpcoming ? "Upcoming" : "Open"}
                         </span>
