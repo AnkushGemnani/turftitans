@@ -197,30 +197,7 @@ export function QuickAuctionConsole({ initialUser }: QuickAuctionConsoleProps) {
   const intervalRef = useRef<any>(null);
 
   const renderModeTabs = () => {
-    return (
-      <div className="flex bg-slate-100 dark:bg-white/5 rounded-2xl p-1 max-w-md mx-auto mb-6">
-        <button
-          onClick={() => setConsoleMode("standalone")}
-          className={`flex-1 h-11 text-xs font-black rounded-xl transition ${
-            consoleMode === "standalone"
-              ? "bg-pitch-500 text-pitch-950 shadow-sm"
-              : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-          }`}
-        >
-          🔌 Standalone Console
-        </button>
-        <button
-          onClick={() => setConsoleMode("game")}
-          className={`flex-1 h-11 text-xs font-black rounded-xl transition ${
-            consoleMode === "game"
-              ? "bg-pitch-500 text-pitch-950 shadow-sm"
-              : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-          }`}
-        >
-          🎮 Multiplayer Game
-        </button>
-      </div>
-    );
+    return null;
   };
 
   // Load from local storage on mount
@@ -1473,7 +1450,7 @@ export function QuickAuctionConsole({ initialUser }: QuickAuctionConsoleProps) {
                       <div className="flex flex-col sm:flex-row items-center gap-6 pb-6 border-b border-slate-100 dark:border-white/5">
                         <div className="relative">
                           <div className="h-24 w-24 rounded-2xl bg-gradient-to-br from-pitch-500/20 to-emerald-500/20 border border-pitch-500/25 flex items-center justify-center font-black text-3xl text-pitch-600 dark:text-pitch-400 relative">
-                            {currentBiddingPlayer.name.charAt(0)}
+                            {currentBiddingPlayer?.name?.charAt(0) || ""}
                           </div>
                           <div className={`absolute -top-3 -right-3 h-10 w-10 rounded-full flex items-center justify-center text-xs font-black shadow-lg border border-white dark:border-pitch-950 ${
                             gameTimer <= 2 ? "bg-red-600 text-white animate-pulse" : "bg-pitch-500 text-pitch-950"
@@ -1483,12 +1460,12 @@ export function QuickAuctionConsole({ initialUser }: QuickAuctionConsoleProps) {
                         </div>
 
                         <div className="space-y-2 text-center sm:text-left flex-1">
-                          <span className={`inline-block text-[10px] font-black px-3 py-1 rounded-full border ${ROLE_COLORS[currentBiddingPlayer.role as keyof typeof ROLE_COLORS] || ""}`}>
-                            {ROLE_LABELS[currentBiddingPlayer.role as keyof typeof ROLE_LABELS] || currentBiddingPlayer.role}
+                          <span className={`inline-block text-[10px] font-black px-3 py-1 rounded-full border ${ROLE_COLORS[currentBiddingPlayer?.role as keyof typeof ROLE_COLORS] || ""}`}>
+                            {ROLE_LABELS[currentBiddingPlayer?.role as keyof typeof ROLE_LABELS] || currentBiddingPlayer?.role || ""}
                           </span>
-                          <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{currentBiddingPlayer.name}</h2>
+                          <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{currentBiddingPlayer?.name || ""}</h2>
                           <p className="text-xs text-slate-400 font-bold">
-                            Base Price: {formatAmount(currentBiddingPlayer.basePrice)}
+                            Base Price: {formatAmount(currentBiddingPlayer?.basePrice || 0)}
                           </p>
                         </div>
                       </div>
