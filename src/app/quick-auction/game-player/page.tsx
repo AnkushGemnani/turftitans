@@ -77,6 +77,116 @@ export type GameTeam = {
   players: Array<{ name: string; role: string; purchaseAmount: number }>;
 };
 
+const PRELOADED_IPL_PLAYERS: PoolPlayer[] = [
+  // Wicket Keepers (15)
+  { name: "MS Dhoni", role: "wicket_keeper", basePrice: 100000 },
+  { name: "Rishabh Pant", role: "wicket_keeper", basePrice: 100000 },
+  { name: "KL Rahul", role: "wicket_keeper", basePrice: 100000 },
+  { name: "Sanju Samson", role: "wicket_keeper", basePrice: 100000 },
+  { name: "Heinrich Klaasen", role: "wicket_keeper", basePrice: 100000 },
+  { name: "Nicholas Pooran", role: "wicket_keeper", basePrice: 100000 },
+  { name: "Jos Buttler", role: "wicket_keeper", basePrice: 100000 },
+  { name: "Quinton de Kock", role: "wicket_keeper", basePrice: 100000 },
+  { name: "Phil Salt", role: "wicket_keeper", basePrice: 100000 },
+  { name: "Ishan Kishan", role: "wicket_keeper", basePrice: 100000 },
+  { name: "Rahmanullah Gurbaz", role: "wicket_keeper", basePrice: 100000 },
+  { name: "Dinesh Karthik", role: "wicket_keeper", basePrice: 100000 },
+  { name: "Jitesh Sharma", role: "wicket_keeper", basePrice: 100000 },
+  { name: "Dhruv Jurel", role: "wicket_keeper", basePrice: 100000 },
+  { name: "Tristan Stubbs", role: "wicket_keeper", basePrice: 100000 },
+
+  // Batsmen (30)
+  { name: "Virat Kohli", role: "batsman", basePrice: 100000 },
+  { name: "Rohit Sharma", role: "batsman", basePrice: 100000 },
+  { name: "Shubman Gill", role: "batsman", basePrice: 100000 },
+  { name: "Suryakumar Yadav", role: "batsman", basePrice: 100000 },
+  { name: "Yashasvi Jaiswal", role: "batsman", basePrice: 100000 },
+  { name: "Travis Head", role: "batsman", basePrice: 100000 },
+  { name: "David Warner", role: "batsman", basePrice: 100000 },
+  { name: "Kane Williamson", role: "batsman", basePrice: 100000 },
+  { name: "Steve Smith", role: "batsman", basePrice: 100000 },
+  { name: "Babar Azam", role: "batsman", basePrice: 100000 },
+  { name: "Rinku Singh", role: "batsman", basePrice: 100000 },
+  { name: "Shreyas Iyer", role: "batsman", basePrice: 100000 },
+  { name: "Harry Brook", role: "batsman", basePrice: 100000 },
+  { name: "Faf du Plessis", role: "batsman", basePrice: 100000 },
+  { name: "Devon Conway", role: "batsman", basePrice: 100000 },
+  { name: "Ruturaj Gaikwad", role: "batsman", basePrice: 100000 },
+  { name: "Sai Sudharsan", role: "batsman", basePrice: 100000 },
+  { name: "Tilak Varma", role: "batsman", basePrice: 100000 },
+  { name: "Rovman Powell", role: "batsman", basePrice: 100000 },
+  { name: "David Miller", role: "batsman", basePrice: 100000 },
+  { name: "Shimron Hetmyer", role: "batsman", basePrice: 100000 },
+  { name: "Aiden Markram", role: "batsman", basePrice: 100000 },
+  { name: "Joe Root", role: "batsman", basePrice: 100000 },
+  { name: "Tom Latham", role: "batsman", basePrice: 100000 },
+  { name: "Jake Fraser-McGurk", role: "batsman", basePrice: 100000 },
+  { name: "Rachin Ravindra", role: "batsman", basePrice: 100000 },
+  { name: "Ajinkya Rahane", role: "batsman", basePrice: 100000 },
+  { name: "Nitish Rana", role: "batsman", basePrice: 100000 },
+  { name: "Manish Pandey", role: "batsman", basePrice: 100000 },
+  { name: "Mayank Agarwal", role: "batsman", basePrice: 100000 },
+
+  // All-Rounders (25)
+  { name: "Hardik Pandya", role: "all_rounder", basePrice: 100000 },
+  { name: "Ravindra Jadeja", role: "all_rounder", basePrice: 100000 },
+  { name: "Glenn Maxwell", role: "all_rounder", basePrice: 100000 },
+  { name: "Andre Russell", role: "all_rounder", basePrice: 100000 },
+  { name: "Sunil Narine", role: "all_rounder", basePrice: 100000 },
+  { name: "Sam Curran", role: "all_rounder", basePrice: 100000 },
+  { name: "Axar Patel", role: "all_rounder", basePrice: 100000 },
+  { name: "Marcus Stoinis", role: "all_rounder", basePrice: 100000 },
+  { name: "Cameron Green", role: "all_rounder", basePrice: 100000 },
+  { name: "Daryl Mitchell", role: "all_rounder", basePrice: 100000 },
+  { name: "Wanindu Hasaranga", role: "all_rounder", basePrice: 100000 },
+  { name: "Shakib Al Hasan", role: "all_rounder", basePrice: 100000 },
+  { name: "Liam Livingstone", role: "all_rounder", basePrice: 100000 },
+  { name: "Shivam Dube", role: "all_rounder", basePrice: 100000 },
+  { name: "Nitish Kumar Reddy", role: "all_rounder", basePrice: 100000 },
+  { name: "Krunal Pandya", role: "all_rounder", basePrice: 100000 },
+  { name: "Washington Sundar", role: "all_rounder", basePrice: 100000 },
+  { name: "Venkatesh Iyer", role: "all_rounder", basePrice: 100000 },
+  { name: "Romario Shepherd", role: "all_rounder", basePrice: 100000 },
+  { name: "Tim David", role: "all_rounder", basePrice: 100000 },
+  { name: "Marco Jansen", role: "all_rounder", basePrice: 100000 },
+  { name: "Chris Woakes", role: "all_rounder", basePrice: 100000 },
+  { name: "Jason Holder", role: "all_rounder", basePrice: 100000 },
+  { name: "Vijay Shankar", role: "all_rounder", basePrice: 100000 },
+  { name: "Deepak Hooda", role: "all_rounder", basePrice: 100000 },
+
+  // Bowlers (30)
+  { name: "Jasprit Bumrah", role: "bowler", basePrice: 100000 },
+  { name: "Mitchell Starc", role: "bowler", basePrice: 100000 },
+  { name: "Pat Cummins", role: "bowler", basePrice: 100000 },
+  { name: "Rashid Khan", role: "bowler", basePrice: 100000 },
+  { name: "Trent Boult", role: "bowler", basePrice: 100000 },
+  { name: "Kagiso Rabada", role: "bowler", basePrice: 100000 },
+  { name: "Mohammed Siraj", role: "bowler", basePrice: 100000 },
+  { name: "Kuldeep Yadav", role: "bowler", basePrice: 100000 },
+  { name: "Yuzvendra Chahal", role: "bowler", basePrice: 100000 },
+  { name: "Matheesha Pathirana", role: "bowler", basePrice: 100000 },
+  { name: "Josh Hazlewood", role: "bowler", basePrice: 100000 },
+  { name: "Shaheen Afridi", role: "bowler", basePrice: 100000 },
+  { name: "Anrich Nortje", role: "bowler", basePrice: 100000 },
+  { name: "Adam Zampa", role: "bowler", basePrice: 100000 },
+  { name: "Ravi Bishnoi", role: "bowler", basePrice: 100000 },
+  { name: "Arshdeep Singh", role: "bowler", basePrice: 100000 },
+  { name: "Sandeep Sharma", role: "bowler", basePrice: 100000 },
+  { name: "Harshal Patel", role: "bowler", basePrice: 100000 },
+  { name: "Naveen-ul-Haq", role: "bowler", basePrice: 100000 },
+  { name: "Maheesh Theekshana", role: "bowler", basePrice: 100000 },
+  { name: "Deepak Chahar", role: "bowler", basePrice: 100000 },
+  { name: "Bhuvneshwar Kumar", role: "bowler", basePrice: 100000 },
+  { name: "T Natarajan", role: "bowler", basePrice: 100000 },
+  { name: "Shardul Thakur", role: "bowler", basePrice: 100000 },
+  { name: "Lockie Ferguson", role: "bowler", basePrice: 100000 },
+  { name: "Nathan Ellis", role: "bowler", basePrice: 100000 },
+  { name: "Mustafizur Rahman", role: "bowler", basePrice: 100000 },
+  { name: "Gerald Coetzee", role: "bowler", basePrice: 100000 },
+  { name: "Akash Deep", role: "bowler", basePrice: 100000 },
+  { name: "Varun Chakaravarthy", role: "bowler", basePrice: 100000 }
+];
+
 function parseNames(text: string): string[] {
   return text
     .split("\n")
@@ -96,13 +206,61 @@ function GamePlayerContent() {
   const [viewMode, setViewMode] = useState<"chooser" | "create" | "join" | "board" | "player">("chooser");
 
   // Create Room Setup Form States
-  const [roomName, setRoomName] = useState("");
+  const [presetType, setPresetType] = useState<"custom" | "ipl">("ipl");
+  const [roomName, setRoomName] = useState("IPL 1 Crore Dream Team Draft");
   const [currencySymbol, setCurrencySymbol] = useState("₹");
-  const [totalBudgetStr, setTotalBudgetStr] = useState("10,000,000"); // 100 Lakhs
-  const [basePriceStr, setBasePriceStr] = useState("200,000"); // 2 Lakhs
-  const [minIncrementStr, setMinIncrementStr] = useState("100,000"); // 1 Lakh
+  const [totalBudgetStr, setTotalBudgetStr] = useState("10,000,000"); // 1 Crore
+  const [basePriceStr, setBasePriceStr] = useState("100,000"); // 1 Lakh
+  const [minIncrementStr, setMinIncrementStr] = useState("50,000"); // 50K
   const [capText, setCapText] = useState("");
   const [playText, setPlayText] = useState("");
+
+  useEffect(() => {
+    // Fill IPL defaults by default on mount
+    setCapText([
+      "Chennai Super Kings",
+      "Mumbai Indians",
+      "Royal Challengers Bengaluru",
+      "Kolkata Knight Riders",
+      "Sunrisers Hyderabad",
+      "Rajasthan Royals",
+      "Delhi Capitals",
+      "Gujarat Titans",
+      "Lucknow Super Giants",
+      "Punjab Kings"
+    ].join("\n"));
+    setPlayText(PRELOADED_IPL_PLAYERS.map(p => p.name).join("\n"));
+  }, []);
+
+  const handlePresetChange = (type: "custom" | "ipl") => {
+    setPresetType(type);
+    if (type === "ipl") {
+      setRoomName("IPL 1 Crore Dream Team Draft");
+      setTotalBudgetStr("10,000,000");
+      setBasePriceStr("100,000");
+      setMinIncrementStr("50,000");
+      setCapText([
+        "Chennai Super Kings",
+        "Mumbai Indians",
+        "Royal Challengers Bengaluru",
+        "Kolkata Knight Riders",
+        "Sunrisers Hyderabad",
+        "Rajasthan Royals",
+        "Delhi Capitals",
+        "Gujarat Titans",
+        "Lucknow Super Giants",
+        "Punjab Kings"
+      ].join("\n"));
+      setPlayText(PRELOADED_IPL_PLAYERS.map(p => p.name).join("\n"));
+    } else {
+      setRoomName("");
+      setTotalBudgetStr("");
+      setBasePriceStr("");
+      setMinIncrementStr("");
+      setCapText("");
+      setPlayText("");
+    }
+  };
 
   // Room Bidding Game States (for both Creator/Board and Bidders)
   const [gameStatus, setGameStatus] = useState<"setup" | "lobby" | "active" | "completed">("setup");
@@ -223,11 +381,16 @@ function GamePlayerContent() {
       players: [],
     }));
 
-    const initialPlayers: PoolPlayer[] = parsedPlayers.map((name) => ({
-      name,
-      role: "unknown",
-      basePrice: getNumber(basePriceStr),
-    }));
+    const initialPlayers: PoolPlayer[] = parsedPlayers.map((name) => {
+      const match = PRELOADED_IPL_PLAYERS.find(
+        (p) => p.name.toLowerCase().trim() === name.toLowerCase().trim()
+      );
+      return {
+        name,
+        role: match ? match.role : "unknown",
+        basePrice: getNumber(basePriceStr),
+      };
+    });
 
     // Setup room local states
     setRoomCode(generatedCode);
@@ -272,7 +435,7 @@ function GamePlayerContent() {
 
         setTeams((prevTeams) => {
           const team = prevTeams.find((t) => t.id === teamId);
-          if (!team || amount > team.remainingBudget) return prevTeams;
+          if (!team || amount > team.remainingBudget || team.playerCount >= 10) return prevTeams;
           playSound(660, "sine", 0.1);
 
           setCurrentHighestBid(amount);
@@ -307,23 +470,28 @@ function GamePlayerContent() {
 
     let updatedTeams = [...teams];
     let resolvedText = "";
+    let completedText = "";
     let nextHistory = [...history];
 
     if (currentHighestBidderId && currentHighestBid > 0) {
       const bidderTeam = teams.find((t) => t.id === currentHighestBidderId);
       resolvedText = `🔨 SOLD! ${currentBiddingPlayer.name} goes to Team ${bidderTeam ? bidderTeam.name : currentHighestBidderId} for ${formatAmount(currentHighestBid, currencySymbol)}!`;
       playSound(880, "triangle", 0.4);
-
-      updatedTeams = teams.map((t) =>
-        t.id === currentHighestBidderId
-          ? {
-              ...t,
-              remainingBudget: t.remainingBudget - currentHighestBid,
-              playerCount: t.playerCount + 1,
-              players: [...(t.players || []), { name: currentBiddingPlayer.name, role: currentBiddingPlayer.role, purchaseAmount: currentHighestBid }],
-            }
-          : t
-      );
+      updatedTeams = teams.map((t) => {
+        if (t.id === currentHighestBidderId) {
+          const newCount = t.playerCount + 1;
+          if (newCount === 10) {
+            completedText = `🎉 ${t.name} has completed their squad of 10 players!`;
+          }
+          return {
+            ...t,
+            remainingBudget: t.remainingBudget - currentHighestBid,
+            playerCount: newCount,
+            players: [...(t.players || []), { name: currentBiddingPlayer.name, role: currentBiddingPlayer.role, purchaseAmount: currentHighestBid }],
+          };
+        }
+        return t;
+      });
 
       nextHistory = [
         {
@@ -353,7 +521,11 @@ function GamePlayerContent() {
 
     setTeams(updatedTeams);
     setHistory(nextHistory);
-    const updatedCommentary = [resolvedText, ...gameCommentary];
+    const updatedCommentary = [
+      resolvedText,
+      ...(completedText ? [completedText] : []),
+      ...gameCommentary
+    ];
     setGameCommentary(updatedCommentary);
 
     broadcastGameState("active", connectedPlayers, updatedTeams, null, currentHighestBid, currentHighestBidderId, 0, nextHistory, updatedCommentary);
@@ -751,6 +923,32 @@ function GamePlayerContent() {
           </div>
 
           <form onSubmit={handleCreateRoom} className="space-y-5">
+            {/* Preset Selector */}
+            <div className="flex bg-slate-100 dark:bg-white/5 rounded-2xl p-1 mb-2">
+              <button
+                type="button"
+                onClick={() => handlePresetChange("ipl")}
+                className={`flex-1 py-2 text-xs font-black rounded-xl transition flex items-center justify-center gap-1.5 ${
+                  presetType === "ipl"
+                    ? "bg-pitch-500 text-pitch-950 shadow-sm"
+                    : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                }`}
+              >
+                🏆 IPL Star Preset (100 Stars / 10 Franchises)
+              </button>
+              <button
+                type="button"
+                onClick={() => handlePresetChange("custom")}
+                className={`flex-1 py-2 text-xs font-black rounded-xl transition flex items-center justify-center gap-1.5 ${
+                  presetType === "custom"
+                    ? "bg-pitch-500 text-pitch-950 shadow-sm"
+                    : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                }`}
+              >
+                📝 Custom WhatsApp Paste
+              </button>
+            </div>
+
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="block text-xs font-black uppercase text-slate-500 dark:text-slate-400 mb-1.5">Auction Title</label>
@@ -1122,9 +1320,14 @@ function GamePlayerContent() {
                     {teams.map((t) => (
                       <div key={t.id} className="flex justify-between items-center text-xs border-b border-slate-100 dark:border-white/5 pb-2">
                         <div>
-                          <span className="font-bold text-slate-900 dark:text-white uppercase">{t.name}</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-bold text-slate-900 dark:text-white uppercase">{t.name}</span>
+                            {t.playerCount >= 10 && (
+                              <span className="inline-block text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-pitch-500 text-pitch-950">Full</span>
+                            )}
+                          </div>
                           <span className="text-[9px] text-slate-400 block mt-0.5">
-                            {t.playerCount} Picks &bull; Spent: {formatAmount(t.budget - t.remainingBudget, currencySymbol)}
+                            {t.playerCount}/10 Picks &bull; Spent: {formatAmount(t.budget - t.remainingBudget, currencySymbol)}
                           </span>
                         </div>
                         <span className="font-black text-slate-500">{formatAmount(t.remainingBudget, currencySymbol)}</span>
@@ -1260,7 +1463,8 @@ function GamePlayerContent() {
     const myTeam = teams.find((t) => t.id === selectedTeamId);
     const myBudget = myTeam ? myTeam.remainingBudget : 0;
     const isHighestBidder = currentHighestBidderId === selectedTeamId;
-    const canBid = currentBiddingPlayer && myBudget >= Number(bidAmount) && Number(bidAmount) >= nextBidAmount && !isHighestBidder;
+    const isSquadFull = myTeam ? myTeam.playerCount >= 10 : false;
+    const canBid = currentBiddingPlayer && myBudget >= Number(bidAmount) && Number(bidAmount) >= nextBidAmount && !isHighestBidder && !isSquadFull;
 
     // Connect to dynamic team choice first
     if (!isRegistered) {
@@ -1458,9 +1662,11 @@ function GamePlayerContent() {
                                 },
                               });
                             }}
-                            disabled={!canBid || Number(bidAmount) > myBudget || Number(bidAmount) < nextBidAmount}
+                            disabled={!canBid || Number(bidAmount) > myBudget || Number(bidAmount) < nextBidAmount || isSquadFull}
                             className={`h-12 px-6 rounded-xl text-sm font-black transition flex items-center justify-center gap-2 shadow-lg shrink-0 ${
-                              isHighestBidder
+                              isSquadFull
+                                ? "bg-red-500/10 border border-red-500/20 text-red-500 cursor-not-allowed"
+                                : isHighestBidder
                                 ? "bg-pitch-500/10 border border-pitch-500/20 text-pitch-500 cursor-default"
                                 : canBid && Number(bidAmount) <= myBudget && Number(bidAmount) >= nextBidAmount
                                 ? "bg-pitch-500 hover:bg-pitch-600 text-pitch-950 shadow-pitch-500/25 active:scale-98"
@@ -1468,7 +1674,7 @@ function GamePlayerContent() {
                             }`}
                           >
                             <Hammer className="h-4.5 w-4.5 shrink-0" />
-                            {isHighestBidder ? "Highest Bidder" : "Place Bid"}
+                            {isSquadFull ? "Squad Full (10/10)" : isHighestBidder ? "Highest Bidder" : "Place Bid"}
                           </button>
                         </div>
 
@@ -1514,7 +1720,7 @@ function GamePlayerContent() {
                   <div className="glass-card rounded-2xl p-5 border border-slate-200/50 dark:border-white/5 bg-white dark:bg-white/[0.02]">
                     <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider mb-3 flex items-center gap-1.5">
                       <Crown className="h-4 w-4 text-yellow-500" />
-                      My Squad: {myTeam.name} ({myTeam.playerCount} Cricketers)
+                      My Squad: {myTeam.name} ({myTeam.playerCount}/10 Cricketers)
                     </h3>
                     <div className="grid gap-2 sm:grid-cols-2">
                       {myTeam.players && myTeam.players.map((p: any, idx: number) => (
@@ -1562,12 +1768,17 @@ function GamePlayerContent() {
                     {teams.map((t) => (
                       <div key={t.id} className="flex justify-between items-center text-xs border-b border-slate-100 dark:border-white/5 pb-2">
                         <div>
-                          <span className="font-bold text-slate-900 dark:text-white uppercase">{t.name}</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-bold text-slate-900 dark:text-white uppercase">{t.name}</span>
+                            {t.playerCount >= 10 && (
+                              <span className="inline-block text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-pitch-500 text-pitch-950">Full</span>
+                            )}
+                          </div>
                           <span className="text-[9px] text-slate-400 block mt-0.5">
-                            {t.playerCount} Picks &bull; Left: {formatAmount(t.remainingBudget, currencySymbol)}
+                            {t.playerCount}/10 Picks &bull; Left: {formatAmount(t.remainingBudget, currencySymbol)}
                           </span>
                         </div>
-                        <span className="font-black text-slate-500">{t.playerCount} Picks</span>
+                        <span className="font-black text-slate-500">{t.playerCount}/10 Picks</span>
                       </div>
                     ))}
                   </div>
@@ -1595,7 +1806,7 @@ function GamePlayerContent() {
                     <div key={team.id} className="py-2.5 text-xs">
                       <span className="font-bold uppercase block text-slate-900 dark:text-white">{team.name}</span>
                       <span className="text-[10px] text-slate-400 block mt-0.5">
-                        Manager: {team.managerName || "N/A"} &bull; Picks: {team.playerCount} &bull; Remaining: {formatAmount(team.remainingBudget, currencySymbol)}
+                        Manager: {team.managerName || "N/A"} &bull; Picks: {team.playerCount}/10 &bull; Remaining: {formatAmount(team.remainingBudget, currencySymbol)}
                       </span>
                     </div>
                   ))}
