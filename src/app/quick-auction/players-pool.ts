@@ -1,0 +1,142 @@
+export type PoolPlayer = {
+  name: string;
+  role: "batsman" | "bowler" | "all_rounder" | "wicket_keeper";
+  basePrice: number; // in points/INR
+};
+
+export const INTERNATIONAL_PLAYERS: PoolPlayer[] = [
+  // India
+  { name: "Virat Kohli", role: "batsman", basePrice: 2000000 },
+  { name: "Rohit Sharma", role: "batsman", basePrice: 2000000 },
+  { name: "Jasprit Bumrah", role: "bowler", basePrice: 2000000 },
+  { name: "MS Dhoni", role: "wicket_keeper", basePrice: 2000000 },
+  { name: "Hardik Pandya", role: "all_rounder", basePrice: 1500000 },
+  { name: "Ravindra Jadeja", role: "all_rounder", basePrice: 1500000 },
+  { name: "Suryakumar Yadav", role: "batsman", basePrice: 1500000 },
+  { name: "Rishabh Pant", role: "wicket_keeper", basePrice: 1500000 },
+  { name: "KL Rahul", role: "wicket_keeper", basePrice: 1000000 },
+  { name: "Shubman Gill", role: "batsman", basePrice: 1000000 },
+  { name: "Yashasvi Jaiswal", role: "batsman", basePrice: 1000000 },
+  { name: "Shreyas Iyer", role: "batsman", basePrice: 800000 },
+  { name: "Rinku Singh", role: "batsman", basePrice: 800000 },
+  { name: "Ruturaj Gaikwad", role: "batsman", basePrice: 800000 },
+  { name: "Ishan Kishan", role: "wicket_keeper", basePrice: 800000 },
+  { name: "Sanju Samson", role: "wicket_keeper", basePrice: 800000 },
+  { name: "Axar Patel", role: "all_rounder", basePrice: 1000000 },
+  { name: "Shivam Dube", role: "all_rounder", basePrice: 800000 },
+  { name: "Mohammed Shami", role: "bowler", basePrice: 1500000 },
+  { name: "Mohammed Siraj", role: "bowler", basePrice: 1000000 },
+  { name: "Arshdeep Singh", role: "bowler", basePrice: 1000000 },
+  { name: "Yuzvendra Chahal", role: "bowler", basePrice: 800000 },
+  { name: "Kuldeep Yadav", role: "bowler", basePrice: 1000000 },
+  { name: "Ravi Bishnoi", role: "bowler", basePrice: 800000 },
+  { name: "Abhishek Sharma", role: "all_rounder", basePrice: 800000 },
+  { name: "Tilak Varma", role: "batsman", basePrice: 800000 },
+  { name: "Nitish Reddy", role: "all_rounder", basePrice: 500000 },
+
+  // Australia
+  { name: "Travis Head", role: "batsman", basePrice: 1500000 },
+  { name: "David Warner", role: "batsman", basePrice: 1000000 },
+  { name: "Steve Smith", role: "batsman", basePrice: 1500000 },
+  { name: "Marnus Labuschagne", role: "batsman", basePrice: 800000 },
+  { name: "Mitchell Marsh", role: "all_rounder", basePrice: 1000000 },
+  { name: "Glenn Maxwell", role: "all_rounder", basePrice: 1500000 },
+  { name: "Cameron Green", role: "all_rounder", basePrice: 1000000 },
+  { name: "Marcus Stoinis", role: "all_rounder", basePrice: 800000 },
+  { name: "Matthew Wade", role: "wicket_keeper", basePrice: 500000 },
+  { name: "Alex Carey", role: "wicket_keeper", basePrice: 500000 },
+  { name: "Pat Cummins", role: "bowler", basePrice: 2000000 },
+  { name: "Mitchell Starc", role: "bowler", basePrice: 2000000 },
+  { name: "Josh Hazlewood", role: "bowler", basePrice: 1500000 },
+  { name: "Adam Zampa", role: "bowler", basePrice: 1000000 },
+  { name: "Nathan Lyon", role: "bowler", basePrice: 800000 },
+  { name: "Tim David", role: "batsman", basePrice: 500000 },
+
+  // England
+  { name: "Jos Buttler", role: "wicket_keeper", basePrice: 1500000 },
+  { name: "Phil Salt", role: "wicket_keeper", basePrice: 1000000 },
+  { name: "Jonny Bairstow", role: "wicket_keeper", basePrice: 1000000 },
+  { name: "Harry Brook", role: "batsman", basePrice: 1000000 },
+  { name: "Joe Root", role: "batsman", basePrice: 1000000 },
+  { name: "Ben Stokes", role: "all_rounder", basePrice: 1500000 },
+  { name: "Liam Livingstone", role: "all_rounder", basePrice: 800000 },
+  { name: "Moeen Ali", role: "all_rounder", basePrice: 800000 },
+  { name: "Sam Curran", role: "all_rounder", basePrice: 1000000 },
+  { name: "Chris Woakes", role: "all_rounder", basePrice: 800000 },
+  { name: "Adil Rashid", role: "bowler", basePrice: 800000 },
+  { name: "Jofra Archer", role: "bowler", basePrice: 1500000 },
+  { name: "Mark Wood", role: "bowler", basePrice: 1000000 },
+  { name: "Gus Atkinson", role: "bowler", basePrice: 500000 },
+  { name: "Will Jacks", role: "all_rounder", basePrice: 800000 },
+
+  // South Africa
+  { name: "Quinton de Kock", role: "wicket_keeper", basePrice: 1000000 },
+  { name: "Heinrich Klaasen", role: "wicket_keeper", basePrice: 1500000 },
+  { name: "David Miller", role: "batsman", basePrice: 1000000 },
+  { name: "Aiden Markram", role: "all_rounder", basePrice: 1000000 },
+  { name: "Tristan Stubbs", role: "batsman", basePrice: 800000 },
+  { name: "Reeza Hendricks", role: "batsman", basePrice: 500000 },
+  { name: "Marco Jansen", role: "all_rounder", basePrice: 1000000 },
+  { name: "Kagiso Rabada", role: "bowler", basePrice: 1500000 },
+  { name: "Anrich Nortje", role: "bowler", basePrice: 1000000 },
+  { name: "Gerald Coetzee", role: "bowler", basePrice: 800000 },
+  { name: "Keshav Maharaj", role: "bowler", basePrice: 800000 },
+  { name: "Lungi Ngidi", role: "bowler", basePrice: 500000 },
+
+  // West Indies
+  { name: "Nicholas Pooran", role: "wicket_keeper", basePrice: 1500000 },
+  { name: "Shai Hope", role: "wicket_keeper", basePrice: 500000 },
+  { name: "Rovman Powell", role: "batsman", basePrice: 800000 },
+  { name: "Shimron Hetmyer", role: "batsman", basePrice: 800000 },
+  { name: "Sherfane Rutherford", role: "batsman", basePrice: 500000 },
+  { name: "Andre Russell", role: "all_rounder", basePrice: 1500000 },
+  { name: "Jason Holder", role: "all_rounder", basePrice: 800000 },
+  { name: "Sunil Narine", role: "all_rounder", basePrice: 1500000 },
+  { name: "Romario Shepherd", role: "all_rounder", basePrice: 500000 },
+  { name: "Alzarri Joseph", role: "bowler", basePrice: 800000 },
+  { name: "Akeal Hosein", role: "bowler", basePrice: 800000 },
+  { name: "Chris Gayle", role: "batsman", basePrice: 1500000 },
+
+  // New Zealand
+  { name: "Devon Conway", role: "wicket_keeper", basePrice: 1000000 },
+  { name: "Kane Williamson", role: "batsman", basePrice: 1500000 },
+  { name: "Daryl Mitchell", role: "all_rounder", basePrice: 1000000 },
+  { name: "Rachin Ravindra", role: "all_rounder", basePrice: 1000000 },
+  { name: "Glenn Phillips", role: "all_rounder", basePrice: 800000 },
+  { name: "Mitchell Santner", role: "all_rounder", basePrice: 800000 },
+  { name: "Trent Boult", role: "bowler", basePrice: 1500000 },
+  { name: "Tim Southee", role: "bowler", basePrice: 800000 },
+  { name: "Matt Henry", role: "bowler", basePrice: 800000 },
+  { name: "Lockie Ferguson", role: "bowler", basePrice: 800000 },
+
+  // Pakistan
+  { name: "Babar Azam", role: "batsman", basePrice: 1500000 },
+  { name: "Mohammad Rizwan", role: "wicket_keeper", basePrice: 1000000 },
+  { name: "Fakhar Zaman", role: "batsman", basePrice: 800000 },
+  { name: "Shadab Khan", role: "all_rounder", basePrice: 800000 },
+  { name: "Iftikhar Ahmed", role: "all_rounder", basePrice: 500000 },
+  { name: "Shaheen Afridi", role: "bowler", basePrice: 1500000 },
+  { name: "Naseem Shah", role: "bowler", basePrice: 1000000 },
+  { name: "Haris Rauf", role: "bowler", basePrice: 800000 },
+
+  // Afghanistan
+  { name: "Rahmanullah Gurbaz", role: "wicket_keeper", basePrice: 800000 },
+  { name: "Ibrahim Zadran", role: "batsman", basePrice: 500000 },
+  { name: "Mohammad Nabi", role: "all_rounder", basePrice: 800000 },
+  { name: "Rashid Khan", role: "bowler", basePrice: 1500000 },
+  { name: "Fazalhaq Farooqi", role: "bowler", basePrice: 800000 },
+  { name: "Naveen-ul-Haq", role: "bowler", basePrice: 500000 },
+
+  // Sri Lanka
+  { name: "Kusal Mendis", role: "wicket_keeper", basePrice: 500000 },
+  { name: "Pathum Nissanka", role: "batsman", basePrice: 500000 },
+  { name: "Charith Asalanka", role: "batsman", basePrice: 500000 },
+  { name: "Wanindu Hasaranga", role: "all_rounder", basePrice: 1000000 },
+  { name: "Maheesh Theekshana", role: "bowler", basePrice: 800000 },
+  { name: "Matheesha Pathirana", role: "bowler", basePrice: 1000000 },
+
+  // Bangladesh
+  { name: "Litton Das", role: "wicket_keeper", basePrice: 500000 },
+  { name: "Shakib Al Hasan", role: "all_rounder", basePrice: 1000000 },
+  { name: "Mustafizur Rahman", role: "bowler", basePrice: 800000 },
+];

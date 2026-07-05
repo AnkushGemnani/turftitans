@@ -115,26 +115,29 @@ export default function HomePage() {
           </div>
           
           <nav className="hidden md:flex items-center gap-6 text-xs font-semibold text-slate-500 dark:text-slate-400">
-            <a href="#story" className="hover:text-pitch-500 transition-colors">Our Story</a>
+            <a href="#story-ankush" className="hover:text-pitch-500 transition-colors">Our Story</a>
             <a href="#how-it-works" className="hover:text-pitch-500 transition-colors">How It Works</a>
             <a href="#features" className="hover:text-pitch-500 transition-colors">Features</a>
             <a href="#gallery" className="hover:text-pitch-500 transition-colors">Gallery</a>
             <Link href="/quick-auction" className="text-rose-500 hover:text-rose-600 dark:text-rose-400 dark:hover:text-rose-300 font-bold flex items-center gap-1 transition-colors">
               <Zap className="h-3.5 w-3.5" /> Quick Auction
             </Link>
+            <Link href="/quick-auction/game-player" className="text-amber-500 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300 font-bold flex items-center gap-1 transition-colors">
+              <Trophy className="h-3.5 w-3.5" /> Play Auction Game
+            </Link>
           </nav>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3">
             <ThemeToggle />
             <Link
               href="/login"
-              className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 dark:border-white/10 bg-white/70 dark:bg-white/[0.02] px-4 text-xs font-bold text-slate-700 dark:text-slate-200 transition-all hover:bg-slate-100 dark:hover:bg-white/[0.06] hover:border-slate-300 dark:hover:border-white/20 active:scale-98 backdrop-blur-md"
+              className="inline-flex h-8 sm:h-9 items-center justify-center rounded-lg border border-slate-200 dark:border-white/10 bg-white/70 dark:bg-white/[0.02] px-2.5 sm:px-4 text-[10px] sm:text-xs font-bold text-slate-700 dark:text-slate-200 transition-all hover:bg-slate-100 dark:hover:bg-white/[0.06] hover:border-slate-300 dark:hover:border-white/20 active:scale-98 backdrop-blur-md"
             >
               Login
             </Link>
             <Link
               href="/sign-up"
-              className="inline-flex h-9 items-center justify-center rounded-lg bg-pitch-500 hover:bg-pitch-600 text-pitch-950 px-4 text-xs font-black transition-all active:scale-98 shadow-[0_0_20px_rgba(16,185,129,0.2)]"
+              className="inline-flex h-8 sm:h-9 items-center justify-center rounded-lg bg-pitch-500 hover:bg-pitch-600 text-pitch-950 px-2.5 sm:px-4 text-[10px] sm:text-xs font-black transition-all active:scale-98 shadow-[0_0_20px_rgba(16,185,129,0.2)]"
             >
               Sign Up
             </Link>
@@ -178,7 +181,7 @@ export default function HomePage() {
                   href="/quick-auction"
                   className="inline-flex h-13 items-center justify-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/5 hover:bg-rose-500/10 text-rose-600 dark:text-rose-400 px-7 text-sm font-black transition-all active:scale-98 backdrop-blur-md"
                 >
-                  <Zap className="h-4 w-4" /> Quick WhatsApp Auction
+                  <Zap className="h-4 w-4" /> Quick Auction
                 </Link>
                 <Link
                   href="/tournaments"
@@ -576,6 +579,50 @@ export default function HomePage() {
       </section>
 
       {/* ═══════════════════════════════════════════════════════════════
+          SECTION 6.5: ABOUT US / OUR STORY — Relatable backstory by Ankush
+      ═══════════════════════════════════════════════════════════════ */}
+      <section id="story-ankush" className="relative z-10 border-t border-slate-200/50 dark:border-white/5 bg-slate-100/10 dark:bg-white/[0.01]">
+        <div className="max-w-4xl mx-auto w-full px-6 py-20 lg:py-24 text-center space-y-8 animate-fade-in">
+          <div className="space-y-3">
+            <span className="text-xs font-bold uppercase tracking-widest text-pitch-500 dark:text-pitch-400 font-display">Our Story</span>
+            <h2 className="text-3xl lg:text-4xl font-display font-black tracking-tight text-slate-900 dark:text-white">
+              The Sunday Turf Cricket Struggle is <span className="text-red-500 font-black">Real</span>.
+            </h2>
+          </div>
+          
+          <div className="glass-card rounded-3xl p-6 sm:p-10 border border-slate-200/60 dark:border-white/5 bg-white dark:bg-white/[0.02] shadow-xl text-left space-y-6 max-w-3xl mx-auto">
+            <p className="text-sm text-slate-650 dark:text-slate-350 leading-relaxed">
+              We&apos;ve all been there: Saturday night, a WhatsApp group with 40 people, and a massive list of names that keeps getting copied and pasted incorrectly. Someone deletes a line number, someone else edits a player&apos;s spelling, and your phone is flooded with 30 different UPI payment screenshots.
+            </p>
+            <p className="text-sm text-slate-650 dark:text-slate-350 leading-relaxed">
+              When auction night finally arrives, you&apos;re sitting on a plastic chair with a calculator, a notepad, and a bunch of heated arguments about team budgets and points. It&apos;s supposed to be fun, but it feels like data entry.
+            </p>
+            <p className="text-sm text-slate-650 dark:text-slate-350 leading-relaxed">
+              <strong>Ankush</strong>, the developer behind TurfTitans, faced this exact nightmare every single weekend. He got tired of the spreadsheet errors, the payment cross-referencing, and the calculator brawls. He wanted the high-production excitement of an IPL auction, but built for turf friends.
+            </p>
+            <p className="text-sm text-slate-655 dark:text-slate-350 leading-relaxed">
+              So, he built <strong>TurfTitans</strong>. An all-in-one platform made by turf players, for turf players, to handle player registrations, verification logs, and professional live bidding. No more WhatsApp chaos.
+            </p>
+            
+            <div className="pt-4 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-100 dark:border-white/5">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-pitch-500 to-emerald-400 flex items-center justify-center font-black text-slate-900 shadow-sm shrink-0">
+                  A
+                </div>
+                <div>
+                  <span className="text-xs font-black text-slate-900 dark:text-white block">Ankush Gemnani</span>
+                  <span className="text-[10px] text-slate-400 block font-semibold">Creator & Developer, TurfTitans</span>
+                </div>
+              </div>
+              <span className="inline-flex items-center gap-1 text-[10px] font-black text-pitch-600 dark:text-pitch-400 bg-pitch-500/10 px-3 py-1.5 rounded-full uppercase tracking-wider border border-pitch-500/20">
+                🏏 Made For Cricket Lovers
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════════
           SECTION 7: CTA BANNER — Final conversion section
       ═══════════════════════════════════════════════════════════════ */}
       <section className="relative z-10 max-w-7xl mx-auto w-full px-6 py-12">
@@ -641,27 +688,29 @@ export default function HomePage() {
         </div>
 
         <div className="lg:col-span-2 space-y-3">
-          <h4 className="font-bold text-slate-900 dark:text-white uppercase text-[10px] tracking-wider">Product</h4>
+          <h4 className="font-bold text-slate-900 dark:text-white uppercase text-[10px] tracking-wider">Product Pages</h4>
           <ul className="space-y-2 text-[11px]">
             <li><Link href="/sign-up" className="hover:text-pitch-500 transition-colors">Create Tournament</Link></li>
-            <li><a href="#how-it-works" className="hover:text-pitch-500 transition-colors">How It Works</a></li>
-            <li><a href="#features" className="hover:text-pitch-500 transition-colors">Features</a></li>
+            <li><Link href="/quick-auction" className="hover:text-pitch-500 transition-colors">Standalone Quick Auction</Link></li>
+            <li><Link href="/quick-auction/game-player" className="hover:text-pitch-500 transition-colors">Play Auction Game</Link></li>
+            <li><Link href="/quick-auction/viewer" className="hover:text-pitch-500 transition-colors">Live Spectator Room</Link></li>
           </ul>
         </div>
 
         <div className="lg:col-span-2 space-y-3">
-          <h4 className="font-bold text-slate-900 dark:text-white uppercase text-[10px] tracking-wider">Resources</h4>
+          <h4 className="font-bold text-slate-900 dark:text-white uppercase text-[10px] tracking-wider">Organizer Portal</h4>
           <ul className="space-y-2 text-[11px]">
-            <li><a href="#" className="hover:text-pitch-500 transition-colors">Help Center</a></li>
-            <li><a href="#" className="hover:text-pitch-500 transition-colors">Guides</a></li>
-            <li><a href="#" className="hover:text-pitch-500 transition-colors">Blog</a></li>
+            <li><Link href="/dashboard" className="hover:text-pitch-500 transition-colors">My Dashboard</Link></li>
+            <li><Link href="/profile" className="hover:text-pitch-500 transition-colors">User Profile Settings</Link></li>
+            <li><Link href="/forgot-password" className="hover:text-pitch-500 transition-colors">Forgot Password</Link></li>
+            <li><Link href="/reset-password" className="hover:text-pitch-500 transition-colors">Reset Password</Link></li>
           </ul>
         </div>
 
         <div className="lg:col-span-3 space-y-3">
           <h4 className="font-bold text-slate-900 dark:text-white uppercase text-[10px] tracking-wider">Company</h4>
           <ul className="space-y-2 text-[11px]">
-            <li><a href="#" className="hover:text-pitch-500 transition-colors">About Us</a></li>
+            <li><Link href="/about" className="hover:text-pitch-500 transition-colors">About Us</Link></li>
             <li><a href="#" className="hover:text-pitch-500 transition-colors">Terms of Service</a></li>
             <li><a href="#" className="hover:text-pitch-500 transition-colors">Privacy Policy</a></li>
           </ul>
@@ -683,7 +732,7 @@ export default function HomePage() {
         </div>
 
         <div className="sm:col-span-2 lg:col-span-12 py-4 border-t border-slate-200/50 dark:border-white/5 text-center text-[10px] text-slate-400 dark:text-slate-500">
-          &copy; {new Date().getFullYear()} TurfTitans. All rights reserved.
+          &copy; {new Date().getFullYear()} TurfTitans. All rights reserved. Developed by Ankush.
         </div>
       </footer>
     </motion.div>

@@ -57,26 +57,26 @@ export default async function QuickAuctionPage() {
           </span>
         </Link>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-3">
           <ThemeToggle />
           {initialUser ? (
             <Link
               href="/dashboard"
-              className="inline-flex h-9 items-center justify-center rounded-lg bg-pitch-500 hover:bg-pitch-600 text-pitch-950 px-4 text-xs font-black transition-all active:scale-98 shadow-[0_0_20px_rgba(16,185,129,0.2)]"
+              className="inline-flex h-8 sm:h-9 items-center justify-center rounded-lg bg-pitch-500 hover:bg-pitch-600 text-pitch-950 px-2.5 sm:px-4 text-[10px] sm:text-xs font-black transition-all active:scale-98 shadow-[0_0_20px_rgba(16,185,129,0.2)]"
             >
-              Go to Dashboard
+              Dashboard
             </Link>
           ) : (
             <>
               <Link
                 href="/login?redirect=/quick-auction"
-                className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 dark:border-white/10 bg-white/70 dark:bg-white/[0.02] px-4 text-xs font-bold text-slate-700 dark:text-slate-200 transition-all hover:bg-slate-100 dark:hover:bg-white/[0.06] hover:border-slate-300 dark:hover:border-white/20 active:scale-98 backdrop-blur-md"
+                className="inline-flex h-8 sm:h-9 items-center justify-center rounded-lg border border-slate-200 dark:border-white/10 bg-white/70 dark:bg-white/[0.02] px-2.5 sm:px-4 text-[10px] sm:text-xs font-bold text-slate-700 dark:text-slate-200 transition-all hover:bg-slate-100 dark:hover:bg-white/[0.06] hover:border-slate-300 dark:hover:border-white/20 active:scale-98 backdrop-blur-md"
               >
                 Login
               </Link>
               <Link
                 href="/sign-up"
-                className="inline-flex h-9 items-center justify-center rounded-lg bg-pitch-500 hover:bg-pitch-600 text-pitch-950 px-4 text-xs font-black transition-all active:scale-98 shadow-[0_0_20px_rgba(16,185,129,0.2)]"
+                className="inline-flex h-8 sm:h-9 items-center justify-center rounded-lg bg-pitch-500 hover:bg-pitch-600 text-pitch-950 px-2.5 sm:px-4 text-[10px] sm:text-xs font-black transition-all active:scale-98 shadow-[0_0_20px_rgba(16,185,129,0.2)]"
               >
                 Sign Up
               </Link>

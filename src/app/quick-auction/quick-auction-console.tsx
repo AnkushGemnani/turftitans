@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useTransition } from "react";
+import React, { useState, useEffect, useCallback, useTransition, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Shuffle,
@@ -26,10 +26,16 @@ import {
   X,
   FileSpreadsheet,
   Check,
-  ArrowUpRight
+  ArrowUpRight,
+  HelpCircle,
+  Volume2,
+  ChevronRight
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { jsPDF } from "jspdf";
+import { createClient } from "@/lib/supabase/browser";
+import { INTERNATIONAL_PLAYERS, PoolPlayer } from "./players-pool";
+
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -112,17 +118,24 @@ function parseNames(text: string): string[] {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function QuickAuctionConsole({ initialUser }: QuickAuctionConsoleProps) {
+  // ─── Modes & Realtime Sharing States ───────────────────────────────────────
+  const [consoleMode, setConsoleMode] = useState<"standalone" | "game">("standalone");
+  const [isLive, setIsLive] = useState(false);
+  const [liveRoomCode, setLiveRoomCode] = useState("");
+  const [liveChannel, setLiveChannel] = useState<any>(null);
+  const [commentaryLogs, setCommentaryLogs] = useState<string[]>([
+    "Welcome to TurfTitans Quick Auction Live commentary!"
+  ]);
+
   // ─── Configuration Form States ─────────────────────────────────────────────
   const [isConfigured, setIsConfigured] = useState(false);
-  const [roomName, setRoomName] = useState("WhatsApp Sunday League");
+  const [roomName, setRoomName] = useState("");
   const [currencySymbol, setCurrencySymbol] = useState("₹");
   const [totalBudgetStr, setTotalBudgetStr] = useState("10,000,000"); // 100 Lakhs
   const [basePriceStr, setBasePriceStr] = useState("200,000"); // 2 Lakhs
   const [minIncrementStr, setMinIncrementStr] = useState("100,000"); // 1 Lakh
-  const [captainsText, setCaptainsText] = useState("Girish Manuja\nBharat Kukreja");
-  const [playersText, setPlayersText] = useState(
-    "Sagar Bhairani\nJagdish Kukreja\nJayesh Kukreja\nSagar Laungani\nAmit Purswani\nDinesh Rohra\nBharat Vazirani\nAmit Agicha\nChirag Ahuja\nAnkush Gemnani\nDipesh Kukreja\nPurav Kalyani"
-  );
+  const [captainsText, setCaptainsText] = useState("");
+  const [playersText, setPlayersText] = useState("");
 
   // Preset Configurations
   const handleApplyPreset = (preset: "cricket_inr" | "points" | "custom_small") => {
@@ -163,6 +176,53 @@ export function QuickAuctionConsole({ initialUser }: QuickAuctionConsoleProps) {
   const [sidebarTab, setSidebarTab] = useState<"available" | "skipped" | "sold">("available");
   const [copiedRosters, setCopiedRosters] = useState(false);
 
+  // ─── Multiplayer Auction Game States ────────────────────────────────────────
+  const [gameStatus, setGameStatus] = useState<"setup" | "lobby" | "active" | "completed">("setup");
+  const [gameRoomCode, setGameRoomCode] = useState("");
+  const [gameMaxTeams, setGameMaxTeams] = useState(4); // default 4 teams
+  const [gameBudgetStr, setGameBudgetStr] = useState("10,000,000"); // 1 Crore = 100 Lakhs
+  const [connectedPlayers, setConnectedPlayers] = useState<Array<{ name: string; teamId: string }>>([]);
+  const [gameTeams, setGameTeams] = useState<any[]>([]);
+  const [gamePlayersPool, setGamePlayersPool] = useState<PoolPlayer[]>([]);
+  const [currentPlayerIdx, setCurrentPlayerIdx] = useState(0);
+  const [currentBiddingPlayer, setCurrentBiddingPlayer] = useState<PoolPlayer | null>(null);
+  const [currentHighestBid, setCurrentHighestBid] = useState(0);
+  const [currentHighestBidderId, setCurrentHighestBidderId] = useState<string | null>(null);
+  const [gameTimer, setGameTimer] = useState(5);
+  const [gameHistory, setGameHistory] = useState<any[]>([]);
+  const [gameCommentary, setGameCommentary] = useState<string[]>([
+    "Multiplayer lobby initialized. Ready for teams to join!"
+  ]);
+  const gameChannelRef = useRef<any>(null);
+  const intervalRef = useRef<any>(null);
+
+  const renderModeTabs = () => {
+    return (
+      <div className="flex bg-slate-100 dark:bg-white/5 rounded-2xl p-1 max-w-md mx-auto mb-6">
+        <button
+          onClick={() => setConsoleMode("standalone")}
+          className={`flex-1 h-11 text-xs font-black rounded-xl transition ${
+            consoleMode === "standalone"
+              ? "bg-pitch-500 text-pitch-950 shadow-sm"
+              : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+          }`}
+        >
+          🔌 Standalone Console
+        </button>
+        <button
+          onClick={() => setConsoleMode("game")}
+          className={`flex-1 h-11 text-xs font-black rounded-xl transition ${
+            consoleMode === "game"
+              ? "bg-pitch-500 text-pitch-950 shadow-sm"
+              : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+          }`}
+        >
+          🎮 Multiplayer Game
+        </button>
+      </div>
+    );
+  };
+
   // Load from local storage on mount
   useEffect(() => {
     const saved = localStorage.getItem("turftitans_quick_auction_state");
@@ -185,6 +245,128 @@ export function QuickAuctionConsole({ initialUser }: QuickAuctionConsoleProps) {
     }
   }, []);
 
+  const addCommentary = useCallback((text: string) => {
+    setCommentaryLogs((prev) => [text, ...prev]);
+  }, []);
+
+  const generateAndAddCommentary = useCallback((type: "nominate" | "bid" | "sold" | "skipped" | "completed", data: { player: string; team?: string; amount?: string }) => {
+    const NOMINATION_QUOTES = [
+      "A hushed silence in the room as {player} is nominated! Base price: {amount}.",
+      "Up next is the superstar {player}! Who will open the bidding at {amount}?",
+      "Get your paddles ready! {player} is on the block at {amount}.",
+      "The room lights up! {player} is up for grabs. Base price: {amount}.",
+      "Next out of the hat is {player}. Bidding starts at {amount}!"
+    ];
+
+    const BID_QUOTES = [
+      "Boom! {team} raises the paddle to {amount}!",
+      "We have a bid! {team} takes it to {amount}.",
+      "{team} is showing real intent here, bid is now {amount}!",
+      "A quick counter-bid from {team}! Now at {amount}.",
+      "{team} jumps in! Bid stands at {amount}."
+    ];
+
+    const SOLD_QUOTES = [
+      "Going once... Going twice... SOLD! {player} goes to {team} for {amount}! What a signing!",
+      "Hammer down! {player} is officially a member of {team} for {amount}!",
+      "Sold! {team} secures the services of {player} for {amount}. Absolute class!",
+      "Done deal! {player} joins the ranks of {team} for {amount}!",
+      "Bidding closes! {player} is snapped up by {team} for a cool {amount}!"
+    ];
+
+    const UNSOLD_QUOTES = [
+      "Unsold! No takers for {player} today. He returns to the pool.",
+      "Timer runs out and {player} goes unsold. A surprise pass from the teams!",
+      "No interest in {player}. Passed on for now.",
+      "{player} remains unsold. Will someone scoop him up in the next round?"
+    ];
+
+    let templates = NOMINATION_QUOTES;
+    if (type === "bid") templates = BID_QUOTES;
+    else if (type === "sold") templates = SOLD_QUOTES;
+    else if (type === "skipped") templates = UNSOLD_QUOTES;
+    else if (type === "completed") {
+      addCommentary("And that's the end of the draft! What an absolute thriller of an auction. Congratulations to all teams on finalising their squads!");
+      return;
+    }
+
+    const teamDisplayName = data.team
+      ? (data.team.toLowerCase().startsWith("team") ? data.team : `Team ${data.team}`)
+      : "";
+
+    const randomTemplate = templates[Math.floor(Math.random() * templates.length)];
+    const text = randomTemplate
+      .replace(/{player}/g, data.player)
+      .replace(/{team}/g, teamDisplayName)
+      .replace(/{amount}/g, data.amount || "");
+    addCommentary(text);
+  }, [addCommentary]);
+
+  const broadcastStandaloneState = useCallback((
+    currentTeams: AuctionTeam[],
+    currentPlayers: AuctionPlayer[],
+    currentHistory: AuctionHistoryEntry[],
+    currentPlayer: AuctionPlayer | null,
+    currentBid: string,
+    completed: boolean,
+    logs: string[]
+  ) => {
+    if (!liveChannel) return;
+    liveChannel.send({
+      type: "broadcast",
+      event: "state_update",
+      payload: {
+        roomName: roomName || "Quick Standalone Auction",
+        currencySymbol,
+        teams: currentTeams,
+        players: currentPlayers,
+        history: currentHistory,
+        selectedPlayer: currentPlayer,
+        bidAmount: currentBid,
+        isCompleted: completed,
+        commentaryLogs: logs
+      }
+    });
+  }, [liveChannel, roomName, currencySymbol]);
+
+  // Effect to manage standalone live channel
+  useEffect(() => {
+    if (!isLive || !liveRoomCode) return;
+    const supabase = createClient();
+    const channel = supabase.channel(`quick-auction:${liveRoomCode}`, {
+      config: { broadcast: { self: false } }
+    });
+
+    channel
+      .on("broadcast", { event: "request_state" }, () => {
+        channel.send({
+          type: "broadcast",
+          event: "state_update",
+          payload: {
+            roomName: roomName || "Quick Standalone Auction",
+            currencySymbol,
+            teams,
+            players,
+            history,
+            selectedPlayer,
+            bidAmount,
+            isCompleted,
+            commentaryLogs
+          }
+        });
+      })
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          setLiveChannel(channel);
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+      setLiveChannel(null);
+    };
+  }, [isLive, liveRoomCode, roomName, currencySymbol, teams, players, history, selectedPlayer, bidAmount, isCompleted, commentaryLogs]);
+
   // Save to local storage on state changes
   const saveState = (
     updatedTeams: AuctionTeam[],
@@ -192,6 +374,7 @@ export function QuickAuctionConsole({ initialUser }: QuickAuctionConsoleProps) {
     updatedHistory: AuctionHistoryEntry[],
     completedVal?: boolean
   ) => {
+    const finalCompleted = completedVal !== undefined ? completedVal : isCompleted;
     localStorage.setItem(
       "turftitans_quick_auction_state",
       JSON.stringify({
@@ -203,9 +386,21 @@ export function QuickAuctionConsole({ initialUser }: QuickAuctionConsoleProps) {
         teams: updatedTeams,
         players: updatedPlayers,
         history: updatedHistory,
-        isCompleted: completedVal !== undefined ? completedVal : isCompleted,
+        isCompleted: finalCompleted,
       })
     );
+
+    if (isLive) {
+      broadcastStandaloneState(
+        updatedTeams,
+        updatedPlayers,
+        updatedHistory,
+        selectedPlayer,
+        bidAmount,
+        finalCompleted,
+        commentaryLogs
+      );
+    }
   };
 
   // Formatting helper
@@ -222,6 +417,266 @@ export function QuickAuctionConsole({ initialUser }: QuickAuctionConsoleProps) {
   const getNumber = (val: string) => {
     return parseInt(val.replace(/[^0-9]/g, ""), 10) || 0;
   };
+
+  const handleGoLive = () => {
+    if (isLive) return;
+    const code = "QA-" + Math.floor(100000 + Math.random() * 900000).toString();
+    setLiveRoomCode(code);
+    setIsLive(true);
+  };
+
+  // ─── Multiplayer Bidding Game Host Logic ──────────────────────────────────
+  const handleStartGameLobby = () => {
+    const code = "GAME-" + Math.floor(100000 + Math.random() * 900000).toString();
+    setGameRoomCode(code);
+    setGameStatus("lobby");
+    setConnectedPlayers([]);
+    setGameCommentary(["Room Lobby created. Waiting for active players to join..."]);
+
+    const FRANCHISES = [
+      { id: "bangalore", name: "Bangalore" },
+      { id: "mumbai", name: "Mumbai" },
+      { id: "chennai", name: "Chennai" },
+      { id: "delhi", name: "Delhi" },
+      { id: "kolkata", name: "Kolkata" },
+      { id: "hyderabad", name: "Hyderabad" },
+      { id: "rajasthan", name: "Rajasthan" },
+      { id: "punjab", name: "Punjab" },
+      { id: "lucknow", name: "Lucknow" },
+      { id: "gujarat", name: "Gujarat" }
+    ];
+
+    // Generate teams based on gameMaxTeams
+    const teamsList = FRANCHISES.slice(0, gameMaxTeams).map((f) => ({
+      id: f.id,
+      name: f.name,
+      budget: getNumber(gameBudgetStr),
+      remainingBudget: getNumber(gameBudgetStr),
+      playerCount: 0,
+      players: [],
+    }));
+    setGameTeams(teamsList);
+  };
+
+  const broadcastGameState = useCallback((
+    status: typeof gameStatus,
+    pl: typeof connectedPlayers,
+    tm: typeof gameTeams,
+    activePlayer: PoolPlayer | null,
+    bid: number,
+    bidderId: string | null,
+    timer: number,
+    hist: any[],
+    comments: string[]
+  ) => {
+    if (gameChannelRef.current) {
+      gameChannelRef.current.send({
+        type: "broadcast",
+        event: "game_state_update",
+        payload: {
+          gameStatus: status,
+          joinedPlayers: pl,
+          teams: tm,
+          currentBiddingPlayer: activePlayer,
+          currentHighestBid: bid,
+          currentHighestBidderId: bidderId,
+          timerValue: timer,
+          history: hist,
+          commentary: comments,
+        },
+      });
+    }
+  }, []);
+
+  // Effect to manage Multiplayer Game Channel
+  useEffect(() => {
+    if (!gameRoomCode || gameStatus === "setup") return;
+    const supabase = createClient();
+    const channel = supabase.channel(`quick-auction-game:${gameRoomCode}`, {
+      config: { broadcast: { self: true } }
+    });
+
+    channel
+      .on("broadcast", { event: "player_join_request" }, ({ payload }) => {
+        if (!payload) return;
+        const { playerName, teamId } = payload;
+        
+        setConnectedPlayers((prev) => {
+          const exists = prev.some((p) => p.teamId === teamId);
+          if (exists) return prev;
+          const updated = [...prev, { name: playerName, teamId }];
+          
+          setGameTeams((prevTeams) => {
+            const updatedTeams = prevTeams.map((t) =>
+              t.id === teamId ? { ...t, managerName: playerName } : t
+            );
+            broadcastGameState(gameStatus, updated, updatedTeams, currentBiddingPlayer, currentHighestBid, currentHighestBidderId, gameTimer, gameHistory, gameCommentary);
+            return updatedTeams;
+          });
+
+          return updated;
+        });
+      })
+      .on("broadcast", { event: "place_bid_action" }, ({ payload }) => {
+        if (!payload || gameStatus !== "active") return;
+        const { teamId, amount } = payload;
+
+        setGameTeams((prevTeams) => {
+          const team = prevTeams.find((t) => t.id === teamId);
+          if (!team || amount > team.remainingBudget) return prevTeams;
+
+          setCurrentHighestBid(amount);
+          setCurrentHighestBidderId(teamId);
+          setGameTimer(5);
+
+          const teamDisplayName = team.name.toLowerCase().startsWith("team") ? team.name : `Team ${team.name}`;
+          const bidderText = `${teamDisplayName} placed a bid of ${formatAmount(amount)}!`;
+          setGameCommentary((prevLogs) => {
+            const updatedLogs = [bidderText, ...prevLogs];
+            broadcastGameState(gameStatus, connectedPlayers, prevTeams, currentBiddingPlayer, amount, teamId, 5, gameHistory, updatedLogs);
+            return updatedLogs;
+          });
+
+          return prevTeams;
+        });
+      })
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          gameChannelRef.current = channel;
+          broadcastGameState(gameStatus, connectedPlayers, gameTeams, currentBiddingPlayer, currentHighestBid, currentHighestBidderId, gameTimer, gameHistory, gameCommentary);
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+      gameChannelRef.current = null;
+    };
+  }, [gameRoomCode, gameStatus]);
+
+  const resolveNomination = () => {
+    if (!currentBiddingPlayer) return;
+
+    let updatedTeams = [...gameTeams];
+    let resolvedText = "";
+    let nextHistory = [...gameHistory];
+
+    if (currentHighestBidderId && currentHighestBid > 0) {
+      const bidderTeam = gameTeams.find((t) => t.id === currentHighestBidderId);
+      resolvedText = `SOLD! ${currentBiddingPlayer.name} goes to Team ${bidderTeam ? bidderTeam.name : currentHighestBidderId} for ${formatAmount(currentHighestBid)}!`;
+      
+      updatedTeams = gameTeams.map((t) =>
+        t.id === currentHighestBidderId
+          ? {
+              ...t,
+              remainingBudget: t.remainingBudget - currentHighestBid,
+              playerCount: t.playerCount + 1,
+              players: [...(t.players || []), { name: currentBiddingPlayer.name, role: currentBiddingPlayer.role, purchaseAmount: currentHighestBid }],
+            }
+          : t
+      );
+
+      nextHistory = [
+        {
+          id: `hist-${Date.now()}`,
+          playerName: currentBiddingPlayer.name,
+          teamName: bidderTeam ? bidderTeam.name : currentHighestBidderId,
+          purchaseAmount: currentHighestBid,
+          status: "sold",
+        },
+        ...gameHistory,
+      ];
+    } else {
+      resolvedText = `UNSOLD! ${currentBiddingPlayer.name} goes unsold and returns to the pool.`;
+      nextHistory = [
+        {
+          id: `hist-${Date.now()}`,
+          playerName: currentBiddingPlayer.name,
+          teamName: null,
+          purchaseAmount: 0,
+          status: "skipped",
+        },
+        ...gameHistory,
+      ];
+    }
+
+    setGameTeams(updatedTeams);
+    setGameHistory(nextHistory);
+    
+    const updatedCommentary = [resolvedText, ...gameCommentary];
+    setGameCommentary(updatedCommentary);
+
+    broadcastGameState(gameStatus, connectedPlayers, updatedTeams, null, currentHighestBid, currentHighestBidderId, 0, nextHistory, updatedCommentary);
+
+    setTimeout(() => {
+      setCurrentPlayerIdx((prevIdx) => {
+        const nextIdx = prevIdx + 1;
+        if (nextIdx < gamePlayersPool.length) {
+          const nextPlayer = gamePlayersPool[nextIdx];
+          setCurrentBiddingPlayer(nextPlayer);
+          setCurrentHighestBid(0);
+          setCurrentHighestBidderId(null);
+          setGameTimer(5);
+
+          const nominateText = `New Player Nominated: ${nextPlayer.name} (${ROLE_LABELS[nextPlayer.role as keyof typeof ROLE_LABELS] || nextPlayer.role}). Base Price: ${formatAmount(nextPlayer.basePrice)}.`;
+          const finalCommentary = [nominateText, ...updatedCommentary];
+          setGameCommentary(finalCommentary);
+
+          broadcastGameState(gameStatus, connectedPlayers, updatedTeams, nextPlayer, 0, null, 5, nextHistory, finalCommentary);
+        } else {
+          setGameStatus("completed");
+          setCurrentBiddingPlayer(null);
+          const endText = "Draft Finished! The international player pool is exhausted.";
+          const finalCommentary = [endText, ...updatedCommentary];
+          setGameCommentary(finalCommentary);
+          broadcastGameState("completed", connectedPlayers, updatedTeams, null, 0, null, 0, nextHistory, finalCommentary);
+        }
+        return nextIdx;
+      });
+    }, 3000);
+  };
+
+  const handleStartGame = () => {
+    const shuffled = [...INTERNATIONAL_PLAYERS].sort(() => Math.random() - 0.5);
+    setGamePlayersPool(shuffled);
+    setCurrentPlayerIdx(0);
+    setGameStatus("active");
+    setGameHistory([]);
+    
+    const firstPlayer = shuffled[0];
+    setCurrentBiddingPlayer(firstPlayer);
+    setCurrentHighestBid(0);
+    setCurrentHighestBidderId(null);
+    setGameTimer(5);
+
+    const introText = `Game Started! Up first: ${firstPlayer.name} (${ROLE_LABELS[firstPlayer.role as keyof typeof ROLE_LABELS] || firstPlayer.role}). Base price: ${formatAmount(firstPlayer.basePrice)}.`;
+    const comments = [introText, "Lobby is locked, bidding has commenced!"];
+    setGameCommentary(comments);
+
+    broadcastGameState("active", connectedPlayers, gameTeams, firstPlayer, 0, null, 5, [], comments);
+  };
+
+  // Game countdown timer logic
+  useEffect(() => {
+    if (gameStatus !== "active" || !currentBiddingPlayer) return;
+
+    intervalRef.current = setInterval(() => {
+      setGameTimer((prev) => {
+        if (prev > 1) {
+          const nextVal = prev - 1;
+          broadcastGameState(gameStatus, connectedPlayers, gameTeams, currentBiddingPlayer, currentHighestBid, currentHighestBidderId, nextVal, gameHistory, gameCommentary);
+          return nextVal;
+        } else {
+          clearInterval(intervalRef.current);
+          resolveNomination();
+          return 0;
+        }
+      });
+    }, 1000);
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [gameStatus, currentBiddingPlayer, currentHighestBid, currentHighestBidderId, gameTeams, connectedPlayers, gameHistory, gameCommentary]);
 
   // ─── Setup Action ──────────────────────────────────────────────────────────
   const handleStartAuction = () => {
@@ -340,6 +795,7 @@ export function QuickAuctionConsole({ initialUser }: QuickAuctionConsoleProps) {
     setBidAmount(baseVal.toString());
     setSelectedTeamId("");
     setActionMsg(null);
+    generateAndAddCommentary("nominate", { player: player.name, amount: formatAmount(baseVal) });
   };
 
   // Random Shuffling Pick
@@ -374,6 +830,7 @@ export function QuickAuctionConsole({ initialUser }: QuickAuctionConsoleProps) {
         setSelectedPlayer(finalPlayer);
         const baseVal = getNumber(basePriceStr);
         setBidAmount(baseVal.toString());
+        generateAndAddCommentary("nominate", { player: finalPlayer.name, amount: formatAmount(baseVal) });
         if (primaryPool.length === 0) {
           setSidebarTab("skipped");
         } else {
@@ -446,6 +903,7 @@ export function QuickAuctionConsole({ initialUser }: QuickAuctionConsoleProps) {
     setSelectedTeamId("");
     setBidAmount("");
     setActionMsg({ type: "success", text: `${selectedPlayer.name} sold to Team ${team.name} for ${formatAmount(amount)}!` });
+    generateAndAddCommentary("sold", { player: selectedPlayer.name, team: team.name, amount: formatAmount(amount) });
 
     saveState(updatedTeams, updatedPlayers, updatedHistory);
   };
@@ -475,6 +933,7 @@ export function QuickAuctionConsole({ initialUser }: QuickAuctionConsoleProps) {
     setHistory(updatedHistory);
     setSelectedPlayer(null);
     setActionMsg({ type: "success", text: `${selectedPlayer.name} skipped. Added to Unsold list.` });
+    generateAndAddCommentary("skipped", { player: selectedPlayer.name });
 
     saveState(teams, updatedPlayers, updatedHistory);
   };
@@ -871,14 +1330,304 @@ export function QuickAuctionConsole({ initialUser }: QuickAuctionConsoleProps) {
 
   // ─── 1. Configuration Screen ──────────────────────────────────────────────
   if (!isConfigured) {
+    if (consoleMode === "game") {
+      if (gameStatus === "setup") {
+        return (
+          <div className="max-w-4xl mx-auto space-y-6 pb-20 animate-fade-in">
+            {renderModeTabs()}
+            
+            <div className="text-center space-y-2">
+              <div className="inline-flex h-12 w-12 rounded-2xl bg-gradient-to-br from-pitch-500 to-emerald-400 items-center justify-center shadow-lg shadow-pitch-500/20">
+                <Zap className="h-6 w-6 text-pitch-950" />
+              </div>
+              <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Multiplayer Auction Game</h1>
+              <p className="text-sm text-slate-500 dark:text-slate-400 max-w-xl mx-auto">
+                Host an interactive, real-time cricket bidding game! Up to 10 players can join your room and bid live against a 5-second countdown timer.
+              </p>
+            </div>
+
+            <div className="glass-card rounded-3xl p-6 sm:p-8 border border-slate-200/50 dark:border-white/5 bg-white dark:bg-white/[0.02] shadow-xl max-w-xl mx-auto">
+              <div className="space-y-5">
+                <div className="space-y-2">
+                  <label className="block text-xs font-black uppercase text-slate-500 dark:text-slate-400">Number of Teams (2-10)</label>
+                  <select
+                    value={gameMaxTeams}
+                    onChange={(e) => setGameMaxTeams(parseInt(e.target.value, 10))}
+                    className="w-full h-11 px-4 text-sm font-semibold rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 focus:outline-none focus:border-pitch-500 transition"
+                  >
+                    {[2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+                      <option key={num} value={num}>{num} Teams</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-xs font-black uppercase text-slate-500 dark:text-slate-400">Total Budget per Team (INR / Points)</label>
+                  <input
+                    type="text"
+                    value={gameBudgetStr}
+                    onChange={(e) => setGameBudgetStr(e.target.value)}
+                    className="w-full h-11 px-4 text-sm font-semibold rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 focus:outline-none focus:border-pitch-500 transition"
+                    placeholder="e.g. 10,000,000"
+                  />
+                </div>
+
+                <button
+                  onClick={handleStartGameLobby}
+                  className="w-full h-12 rounded-xl bg-pitch-500 hover:bg-pitch-600 text-pitch-950 font-black shadow-md shadow-pitch-500/10 active:scale-98 transition flex items-center justify-center gap-2 text-sm"
+                >
+                  <Users className="h-4.5 w-4.5" /> Create Game Lobby
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      if (gameStatus === "lobby") {
+        return (
+          <div className="max-w-4xl mx-auto space-y-6 pb-20 animate-fade-in">
+            <div className="text-center space-y-2">
+              <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Game Lobby Created!</h1>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                Share the Room Code with your friends. Once players join, assign them a franchise and click Start.
+              </p>
+            </div>
+
+            <div className="glass-card rounded-3xl p-6 sm:p-8 border border-slate-200/50 dark:border-white/5 bg-white dark:bg-white/[0.02] shadow-xl max-w-xl mx-auto space-y-6">
+              <div className="text-center bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl">
+                <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Lobby Room Code</span>
+                <h2 className="text-3xl font-black text-pitch-500 tracking-widest mt-1">{gameRoomCode}</h2>
+                <button
+                  onClick={() => {
+                    const url = `${window.location.origin}/quick-auction/game-player?room=${gameRoomCode}`;
+                    navigator.clipboard.writeText(url);
+                    alert("Copied player join link!");
+                  }}
+                  className="text-xs text-slate-400 underline hover:text-white mt-2 block mx-auto"
+                >
+                  Copy Player Join Link
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                <h4 className="text-xs font-black uppercase text-slate-400 tracking-wider">Connected Teams ({connectedPlayers.length}/{gameMaxTeams})</h4>
+                <div className="divide-y divide-slate-100 dark:divide-white/5">
+                  {gameTeams.map((team) => (
+                    <div key={team.id} className="py-2.5 flex justify-between items-center text-xs">
+                      <span className="font-bold text-slate-900 dark:text-white uppercase">{team.name}</span>
+                      {team.managerName ? (
+                        <span className="text-pitch-500 font-semibold flex items-center gap-1">
+                          🟢 Connected: {team.managerName}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400">Waiting for player...</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <button
+                onClick={handleStartGame}
+                disabled={connectedPlayers.length === 0}
+                className="w-full h-12 rounded-xl bg-pitch-500 hover:bg-pitch-600 text-pitch-950 font-black shadow-md shadow-pitch-500/10 active:scale-98 transition flex items-center justify-center gap-2 text-sm disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Start Live Game Draft
+              </button>
+            </div>
+          </div>
+        );
+      }
+
+      if (gameStatus === "active") {
+        return (
+          <div className="space-y-6 pb-20 animate-fade-in max-w-7xl mx-auto">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-200/50 dark:border-white/5 pb-4">
+              <div>
+                <span className="inline-flex items-center gap-1.5 text-pitch-600 dark:text-pitch-400 text-xs font-black uppercase tracking-wider bg-pitch-500/5 dark:bg-pitch-500/10 px-3 py-1 rounded-full border border-pitch-500/25">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pitch-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-pitch-500" />
+                  </span>
+                  Active Room Code: {gameRoomCode}
+                </span>
+                <h1 className="text-2xl font-black text-slate-900 dark:text-white mt-1.5">Multiplayer Auction Game Room</h1>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setGameStatus("setup")}
+                  className="inline-flex h-9 items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/5 hover:bg-red-500/10 text-red-600 dark:text-red-400 px-4 text-xs font-bold transition"
+                >
+                  Quit Game
+                </button>
+              </div>
+            </div>
+
+            <div className="grid gap-6 lg:grid-cols-12 items-start">
+              <div className="lg:col-span-8 space-y-4">
+                <div className="glass-card rounded-3xl p-6 border border-slate-200/50 dark:border-white/5 bg-white dark:bg-white/[0.02] shadow-sm min-h-[380px] flex flex-col justify-between relative overflow-hidden">
+                  {currentBiddingPlayer ? (
+                    <div className="flex-1 flex flex-col justify-between space-y-6">
+                      <div className="flex flex-col sm:flex-row items-center gap-6 pb-6 border-b border-slate-100 dark:border-white/5">
+                        <div className="relative">
+                          <div className="h-24 w-24 rounded-2xl bg-gradient-to-br from-pitch-500/20 to-emerald-500/20 border border-pitch-500/25 flex items-center justify-center font-black text-3xl text-pitch-600 dark:text-pitch-400 relative">
+                            {currentBiddingPlayer.name.charAt(0)}
+                          </div>
+                          <div className={`absolute -top-3 -right-3 h-10 w-10 rounded-full flex items-center justify-center text-xs font-black shadow-lg border border-white dark:border-pitch-950 ${
+                            gameTimer <= 2 ? "bg-red-600 text-white animate-pulse" : "bg-pitch-500 text-pitch-950"
+                          }`}>
+                            <Clock className="h-3 w-3 mr-0.5" /> {gameTimer}s
+                          </div>
+                        </div>
+
+                        <div className="space-y-2 text-center sm:text-left flex-1">
+                          <span className={`inline-block text-[10px] font-black px-3 py-1 rounded-full border ${ROLE_COLORS[currentBiddingPlayer.role as keyof typeof ROLE_COLORS] || ""}`}>
+                            {ROLE_LABELS[currentBiddingPlayer.role as keyof typeof ROLE_LABELS] || currentBiddingPlayer.role}
+                          </span>
+                          <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{currentBiddingPlayer.name}</h2>
+                          <p className="text-xs text-slate-400 font-bold">
+                            Base Price: {formatAmount(currentBiddingPlayer.basePrice)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col items-center justify-center py-6 bg-slate-50 dark:bg-white/[0.01] rounded-2xl border border-slate-200/50 dark:border-white/5">
+                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Current highest bid</span>
+                        <h3 className="text-3xl font-black text-pitch-600 mt-1">
+                          {currentHighestBid === 0 ? "No Bids Placed" : formatAmount(currentHighestBid)}
+                        </h3>
+                        {currentHighestBidderId && (
+                          <span className="text-xs font-bold text-slate-500 mt-1">
+                            Held by: <strong className="uppercase">{currentHighestBidderId}</strong>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex-1 flex flex-col items-center justify-center text-center space-y-6 py-10">
+                      <div className="h-14 w-14 rounded-2xl bg-pitch-500/10 flex items-center justify-center text-pitch-500 animate-bounce">
+                        <Trophy className="h-6 w-6" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-black text-slate-900 dark:text-white">Nomination Settled!</h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mt-1 mx-auto">
+                          Updating records and loading the next cricketer...
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="lg:col-span-4 space-y-4">
+                <div className="glass-card rounded-2xl p-4 border border-slate-200/50 dark:border-white/5 bg-white dark:bg-white/[0.02]">
+                  <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2.5">Live Commentary</h4>
+                  <div className="max-h-[160px] overflow-y-auto space-y-2 pr-1">
+                    {gameCommentary.slice(0, 6).map((log, idx) => (
+                      <div key={idx} className="flex gap-2 items-start text-[11px] leading-relaxed text-slate-600 dark:text-slate-300">
+                        <ChevronRight className="h-3 w-3 shrink-0 text-pitch-500 mt-0.5" />
+                        <span>{log}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="glass-card rounded-2xl p-5 border border-slate-200/50 dark:border-white/5 bg-white dark:bg-white/[0.02]">
+                  <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-3">Leaderboard</h4>
+                  <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+                    {gameTeams.map((t) => (
+                      <div key={t.id} className="flex justify-between items-center text-xs border-b border-slate-100 dark:border-white/5 pb-2">
+                        <div>
+                          <span className="font-bold text-slate-900 dark:text-white uppercase">{t.name}</span>
+                          <span className="text-[9px] text-slate-400 block mt-0.5">
+                            {t.playerCount}/10 Players &bull; Budget: {formatAmount(t.remainingBudget)}
+                          </span>
+                        </div>
+                        <span className="font-black text-slate-500">{t.playerCount} Picks</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4 pt-4">
+              <h2 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white">Squad Rosters</h2>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {gameTeams.map((team) => (
+                  <div key={team.id} className="glass-card rounded-2xl p-5 border border-slate-200/50 dark:border-white/5 bg-white dark:bg-white/[0.02] shadow-sm flex flex-col justify-between space-y-4">
+                    <div>
+                      <div className="flex justify-between items-start border-b border-slate-100 dark:border-white/5 pb-3">
+                        <div>
+                          <h3 className="text-sm font-black text-slate-900 dark:text-white">{team.name}</h3>
+                          <span className="text-[10px] text-slate-400 block mt-0.5">Manager: {team.managerName || "Unassigned"}</span>
+                        </div>
+                        <span className="text-xs font-black text-pitch-600">{formatAmount(team.remainingBudget)}</span>
+                      </div>
+                      <div className="pt-3 space-y-2">
+                        {team.players && team.players.map((p: any, idx: number) => (
+                          <div key={idx} className="flex justify-between items-center text-xs py-1">
+                            <span>{p.name}</span>
+                            <span className="font-black">{formatAmount(p.purchaseAmount)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      if (gameStatus === "completed") {
+        return (
+          <div className="max-w-4xl mx-auto space-y-6 pb-20 animate-fade-in">
+            <div className="text-center space-y-2">
+              <h1 className="text-3xl font-black text-slate-900 dark:text-white">Game Finished!</h1>
+              <p className="text-sm text-slate-500">Draft has closed. View final teams below.</p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {gameTeams.map((team) => (
+                <div key={team.id} className="glass-card rounded-2xl p-5 border border-slate-200/50 bg-white dark:bg-white/[0.02]">
+                  <h3 className="text-sm font-black text-slate-900 dark:text-white border-b pb-2 mb-3 uppercase">{team.name}</h3>
+                  <div className="space-y-2">
+                    {team.players && team.players.map((p: any, idx: number) => (
+                      <div key={idx} className="flex justify-between items-center text-xs">
+                        <span>{p.name}</span>
+                        <span className="font-bold">{formatAmount(p.purchaseAmount)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <button
+              onClick={() => setGameStatus("setup")}
+              className="w-full h-12 rounded-xl bg-pitch-500 text-pitch-950 font-black"
+            >
+              Start New Game Lobby
+            </button>
+          </div>
+        );
+      }
+    }
+
     return (
       <div className="max-w-4xl mx-auto space-y-6 pb-20 animate-fade-in">
+        {renderModeTabs()}
+
         {/* Info header */}
         <div className="text-center space-y-2">
           <div className="inline-flex h-12 w-12 rounded-2xl bg-gradient-to-br from-pitch-500 to-emerald-400 items-center justify-center shadow-lg shadow-pitch-500/20">
             <Zap className="h-6 w-6 text-pitch-950" />
           </div>
-          <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Quick WhatsApp Auction Console</h1>
+          <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Quick Auction Console</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 max-w-xl mx-auto">
             Run a professional live auction instantly. Paste team captains and players directly from WhatsApp, set points/budget, and start bidding.
           </p>
@@ -936,8 +1685,8 @@ export function QuickAuctionConsole({ initialUser }: QuickAuctionConsoleProps) {
             </div>
 
             {/* Presets and Currency Toggle */}
-            <div className="flex flex-wrap items-center justify-between gap-4 py-2 border-y border-slate-100 dark:border-white/5">
-              <div className="flex items-center gap-2">
+            <div className="grid gap-4 sm:flex sm:items-center sm:justify-between py-3 border-y border-slate-100 dark:border-white/5">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs font-bold text-slate-400">Settings Presets:</span>
                 <button
                   type="button"
@@ -955,7 +1704,7 @@ export function QuickAuctionConsole({ initialUser }: QuickAuctionConsoleProps) {
                 </button>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between sm:justify-end gap-2">
                 <span className="text-xs font-bold text-slate-400">Currency Symbol:</span>
                 <div className="flex bg-slate-100 dark:bg-white/5 rounded-xl p-1">
                   {["₹", "$", "pts"].map((symbol) => (
@@ -988,7 +1737,9 @@ export function QuickAuctionConsole({ initialUser }: QuickAuctionConsoleProps) {
                   onChange={(e) => setCaptainsText(e.target.value)}
                   rows={4}
                   className="w-full p-4 text-sm font-semibold rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 focus:outline-none focus:border-pitch-500 transition font-mono"
-                  placeholder="Girish Manuja&#10;Bharat Kukreja"
+                  placeholder={`e.g. Captain One
+e.g. Captain Two
+e.g. Captain Three`}
                 />
               </div>
 
@@ -1002,7 +1753,10 @@ export function QuickAuctionConsole({ initialUser }: QuickAuctionConsoleProps) {
                   onChange={(e) => setPlayersText(e.target.value)}
                   rows={6}
                   className="w-full p-4 text-sm font-semibold rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 focus:outline-none focus:border-pitch-500 transition font-mono"
-                  placeholder="1, Sagar Bhairani&#10;2, Jagdish Kukreja&#10;3, Jayesh Kukreja"
+                  placeholder={`e.g. Player One
+e.g. Player Two
+e.g. Player Three
+e.g. Player Four`}
                 />
               </div>
             </div>
@@ -1044,6 +1798,30 @@ export function QuickAuctionConsole({ initialUser }: QuickAuctionConsoleProps) {
 
         {/* Action Panel Buttons */}
         <div className="flex flex-wrap items-center gap-2">
+          {!isLive && !isCompleted && (
+            <button
+              onClick={handleGoLive}
+              className="inline-flex h-9 items-center gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-pitch-950 px-4 text-xs font-black transition shadow-md"
+            >
+              📶 Go Live & Share
+            </button>
+          )}
+          {isLive && (
+            <div className="inline-flex h-9 items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-3 text-xs font-bold text-emerald-500">
+              🟢 Live Room: {liveRoomCode}
+              <button
+                onClick={() => {
+                  const url = `${window.location.origin}/quick-auction/viewer?room=${liveRoomCode}`;
+                  navigator.clipboard.writeText(url);
+                  alert("Copied spectator watch link!");
+                }}
+                className="ml-1 text-[10px] underline hover:text-emerald-450 text-emerald-400 font-black"
+              >
+                Copy Link
+              </button>
+            </div>
+          )}
+
           {history.length > 0 && !isCompleted && (
             <button
               onClick={handleUndo}
@@ -1121,8 +1899,8 @@ export function QuickAuctionConsole({ initialUser }: QuickAuctionConsoleProps) {
       {/* Main Console Layout */}
       <div className="grid gap-6 lg:grid-cols-12 items-start">
         
-        {/* Left column: Players List (4 cols) */}
-        <div className="lg:col-span-4 space-y-4">
+        {/* Left column: Players List (3 cols) */}
+        <div className="lg:col-span-3 space-y-4">
           <div className="glass-card rounded-3xl p-5 border border-slate-200/50 dark:border-white/5 bg-white dark:bg-white/[0.02] shadow-sm">
             
             {/* List header tabs */}
@@ -1163,8 +1941,8 @@ export function QuickAuctionConsole({ initialUser }: QuickAuctionConsoleProps) {
           </div>
         </div>
 
-        {/* Center column: Main bidding portal (8 cols) */}
-        <div className="lg:col-span-8 space-y-4">
+        {/* Center column: Main bidding portal (6 cols) */}
+        <div className="lg:col-span-6 space-y-4">
           <div className="glass-card rounded-3xl p-6 sm:p-8 border border-slate-200/50 dark:border-white/5 bg-white dark:bg-white/[0.02] shadow-sm relative min-h-[480px] flex flex-col justify-between overflow-hidden">
             
             {/* Shuffling animation overlay */}
@@ -1413,6 +2191,56 @@ export function QuickAuctionConsole({ initialUser }: QuickAuctionConsoleProps) {
                 )}
               </div>
             )}
+          </div>
+        </div>
+
+        {/* Right column: Live Commentary (3 cols) */}
+        <div className="lg:col-span-3 space-y-4">
+          {/* Live Commentary box */}
+          <div className="glass-card rounded-3xl p-5 border border-slate-200/50 dark:border-white/5 bg-white dark:bg-white/[0.02] shadow-sm">
+            <h3 className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-3.5 flex items-center gap-1.5">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+              </span>
+              Live Commentary
+            </h3>
+            <div className="max-h-[220px] overflow-y-auto space-y-2.5 pr-1">
+              {commentaryLogs.slice(0, 10).map((log, idx) => (
+                <div key={idx} className="flex gap-2 items-start text-[11px] leading-relaxed text-slate-600 dark:text-slate-300 border-b border-slate-100 dark:border-white/5 pb-2">
+                  <ChevronRight className="h-3 w-3 shrink-0 text-pitch-500 mt-0.5" />
+                  <span>{log}</span>
+                </div>
+              ))}
+              {commentaryLogs.length === 0 && (
+                <p className="text-xs text-slate-400 text-center py-4">Waiting for auction events...</p>
+              )}
+            </div>
+          </div>
+
+          {/* History Feed */}
+          <div className="glass-card rounded-3xl p-5 border border-slate-200/50 dark:border-white/5 bg-white dark:bg-white/[0.02] shadow-sm">
+            <h3 className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-3">
+              Recent Activity
+            </h3>
+            <div className="max-h-[160px] overflow-y-auto space-y-2 pr-1">
+              {history.slice(0, 5).map((item) => (
+                <div key={item.id} className="text-xs flex justify-between items-center py-1.5 border-b border-slate-100 dark:border-white/5">
+                  <div>
+                    <span className="font-bold text-slate-900 dark:text-white">{item.playerName}</span>
+                    <span className="text-[10px] text-slate-450 block">
+                      {item.status === "sold" ? `Sold to ${item.teamName}` : "Unsold"}
+                    </span>
+                  </div>
+                  <span className="font-black text-slate-500 text-[10px]">
+                    {item.status === "sold" ? formatAmount(item.purchaseAmount) : "Passed"}
+                  </span>
+                </div>
+              ))}
+              {history.length === 0 && (
+                <p className="text-xs text-slate-400 text-center py-4">No recent activity.</p>
+              )}
+            </div>
           </div>
         </div>
 
