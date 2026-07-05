@@ -17,7 +17,8 @@ import {
   DollarSign,
   Activity,
   CalendarDays,
-  ArrowRight
+  ArrowRight,
+  Zap
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils/cn";
@@ -338,7 +339,7 @@ export default async function DashboardPage() {
           Quick Actions
         </h2>
         
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           {(() => {
             const singleTournamentId = createdTournaments && createdTournaments.length === 1 ? createdTournaments[0].id : null;
             const actions = [
@@ -361,6 +362,12 @@ export default async function DashboardPage() {
                 href: singleTournamentId ? `/tournaments/${singleTournamentId}/auction` : "/tournaments/my?action=auction", 
                 icon: Gavel, 
                 color: "text-emerald-500 border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500/10" 
+              },
+              { 
+                label: "Quick Auction", 
+                href: "/quick-auction", 
+                icon: Zap, 
+                color: "text-rose-500 border-rose-500/20 bg-rose-500/5 hover:bg-rose-500/10" 
               },
             ];
             return actions.map((act, i) => {

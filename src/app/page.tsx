@@ -119,6 +119,9 @@ export default function HomePage() {
             <a href="#how-it-works" className="hover:text-pitch-500 transition-colors">How It Works</a>
             <a href="#features" className="hover:text-pitch-500 transition-colors">Features</a>
             <a href="#gallery" className="hover:text-pitch-500 transition-colors">Gallery</a>
+            <Link href="/quick-auction" className="text-rose-500 hover:text-rose-600 dark:text-rose-400 dark:hover:text-rose-300 font-bold flex items-center gap-1 transition-colors">
+              <Zap className="h-3.5 w-3.5" /> Quick Auction
+            </Link>
           </nav>
 
           <div className="flex items-center gap-3">
@@ -170,6 +173,12 @@ export default function HomePage() {
                 >
                   Create Your Tournament
                   <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden />
+                </Link>
+                <Link
+                  href="/quick-auction"
+                  className="inline-flex h-13 items-center justify-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/5 hover:bg-rose-500/10 text-rose-600 dark:text-rose-400 px-7 text-sm font-black transition-all active:scale-98 backdrop-blur-md"
+                >
+                  <Zap className="h-4 w-4" /> Quick WhatsApp Auction
                 </Link>
                 <Link
                   href="/tournaments"

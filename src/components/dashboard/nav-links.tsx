@@ -12,7 +12,8 @@ import {
   Users,
   LineChart,
   Settings,
-  PlusCircle
+  PlusCircle,
+  Zap
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
@@ -31,6 +32,7 @@ export function NavLinks({ vertical = false }: { vertical?: boolean }) {
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/tournaments", label: "Browse Tournaments", icon: Search },
     { href: "/tournaments/my", label: "My Tournaments", icon: FolderKanban },
+    { href: "/quick-auction", label: "Quick Auction", icon: Zap },
     { 
       href: currentTournamentId 
         ? `/tournaments/${currentTournamentId}/registrations` 
@@ -82,8 +84,8 @@ export function NavLinks({ vertical = false }: { vertical?: boolean }) {
     const [itemPath, itemQuery] = itemHref.split("?");
 
     // Exact matches
-    if (itemHref === "/dashboard" || itemHref === "/profile") {
-      return pathname === itemHref;
+    if (itemHref === "/dashboard" || itemHref === "/profile" || itemHref === "/quick-auction") {
+      return pathname === itemPath;
     }
 
     // Match path + search params if query parameter exists
