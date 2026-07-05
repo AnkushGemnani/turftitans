@@ -295,6 +295,31 @@ function GamePlayerContent() {
   const channelRef = useRef<any>(null);
   const timerIntervalRef = useRef<any>(null);
 
+  // Refs to avoid stale closures in socket callbacks
+  const roomNameRef = useRef(roomName);
+  const currencySymbolRef = useRef(currencySymbol);
+  const gameStatusRef = useRef(gameStatus);
+  const connectedPlayersRef = useRef(connectedPlayers);
+  const teamsRef = useRef(teams);
+  const currentBiddingPlayerRef = useRef(currentBiddingPlayer);
+  const currentHighestBidRef = useRef(currentHighestBid);
+  const currentHighestBidderIdRef = useRef(currentHighestBidderId);
+  const timerValueRef = useRef(timerValue);
+  const historyRef = useRef(history);
+  const gameCommentaryRef = useRef(gameCommentary);
+
+  useEffect(() => { roomNameRef.current = roomName; }, [roomName]);
+  useEffect(() => { currencySymbolRef.current = currencySymbol; }, [currencySymbol]);
+  useEffect(() => { gameStatusRef.current = gameStatus; }, [gameStatus]);
+  useEffect(() => { connectedPlayersRef.current = connectedPlayers; }, [connectedPlayers]);
+  useEffect(() => { teamsRef.current = teams; }, [teams]);
+  useEffect(() => { currentBiddingPlayerRef.current = currentBiddingPlayer; }, [currentBiddingPlayer]);
+  useEffect(() => { currentHighestBidRef.current = currentHighestBid; }, [currentHighestBid]);
+  useEffect(() => { currentHighestBidderIdRef.current = currentHighestBidderId; }, [currentHighestBidderId]);
+  useEffect(() => { timerValueRef.current = timerValue; }, [timerValue]);
+  useEffect(() => { historyRef.current = history; }, [history]);
+  useEffect(() => { gameCommentaryRef.current = gameCommentary; }, [gameCommentary]);
+
   // play audio helper
   const playSound = useCallback((frequency: number, type: OscillatorType = "sine", duration: number = 0.1) => {
     if (!soundEnabled) return;
@@ -344,12 +369,12 @@ function GamePlayerContent() {
           timerValue: timer,
           history: hist,
           commentary: comments,
-          roomName,
-          currencySymbol,
+          roomName: roomNameRef.current,
+          currencySymbol: currencySymbolRef.current,
         },
       });
     }
-  }, [roomName, currencySymbol]);
+  }, []);
 
   // ─── Creator Setup Actions ──────────────────────────────────────────────────
   const handleCreateRoom = (e: React.FormEvent) => {
@@ -408,6 +433,19 @@ function GamePlayerContent() {
     });
 
     channel
+      .on("broadcast", { event: "request_lobby_state" }, () => {
+        broadcastGameState(
+          gameStatusRef.current,
+          connectedPlayersRef.current,
+          teamsRef.current,
+          currentBiddingPlayerRef.current,
+          currentHighestBidRef.current,
+          currentHighestBidderIdRef.current,
+          timerValueRef.current,
+          historyRef.current,
+          gameCommentaryRef.current
+        );
+      })
       .on("broadcast", { event: "player_join_request" }, ({ payload }) => {
         if (!payload) return;
         const { playerName: bidderName, teamId } = payload;
@@ -676,6 +714,11 @@ function GamePlayerContent() {
           channelRef.current = channel;
           setViewMode("player");
           setSuccessMsg("Connected to room lobby. Select your team to participate.");
+          channel.send({
+            type: "broadcast",
+            event: "request_lobby_state",
+            payload: {},
+          });
         } else {
           setConnecting(false);
           setErrorMsg("Could not connect to Room. Check the code.");
