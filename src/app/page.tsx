@@ -239,7 +239,7 @@ export default function HomePage() {
                 From player registration to IPL-style auctions, team formation to budget tracking — run everything from one powerful platform. No more WhatsApp chaos.
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto pt-2">
+              <div className="flex flex-col sm:flex-row flex-wrap gap-3 w-full sm:w-auto pt-2 justify-center lg:justify-start">
                 <Link
                   href="/sign-up"
                   className="group relative inline-flex h-13 items-center justify-center gap-2 rounded-xl bg-pitch-500 hover:bg-pitch-600 text-pitch-950 px-7 text-sm font-black transition-all active:scale-98 shadow-[0_0_30px_rgba(16,185,129,0.25)]"
@@ -252,6 +252,12 @@ export default function HomePage() {
                   className="inline-flex h-13 items-center justify-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/5 hover:bg-rose-500/10 text-rose-600 dark:text-rose-400 px-7 text-sm font-black transition-all active:scale-98 backdrop-blur-md"
                 >
                   <Zap className="h-4 w-4" /> Quick Auction
+                </Link>
+                <Link
+                  href="/quick-auction/game-player"
+                  className="inline-flex h-13 items-center justify-center gap-2 rounded-xl border border-amber-500/20 bg-amber-500/5 hover:bg-amber-500/10 text-amber-600 dark:text-amber-400 px-7 text-sm font-black transition-all active:scale-98 backdrop-blur-md"
+                >
+                  <Trophy className="h-4 w-4 animate-pulse" /> Play Auction Game
                 </Link>
                 <Link
                   href="/tournaments"
