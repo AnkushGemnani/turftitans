@@ -22,7 +22,8 @@ import {
   VolumeX,
   Play,
   Pause,
-  SkipForward
+  SkipForward,
+  XCircle
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { jsPDF } from "jspdf";
@@ -280,13 +281,18 @@ function GamePlayerContent() {
   const [currentBiddingPlayer, setCurrentBiddingPlayer] = useState<PoolPlayer | null>(null);
   const [currentHighestBid, setCurrentHighestBid] = useState(0);
   const [currentHighestBidderId, setCurrentHighestBidderId] = useState<string | null>(null);
-  const [timerValue, setTimerValue] = useState(5);
+  const [timerValue, setTimerValue] = useState(30);
   const [isTimerPaused, setIsTimerPaused] = useState(false);
   const [gameCommentary, setGameCommentary] = useState<string[]>([]);
   const [history, setHistory] = useState<any[]>([]);
 
+  // Host Player & Pass Bidding States
+  const [hostClaimedTeamId, setHostClaimedTeamId] = useState<string | null>(null);
+  const [passedManagers, setPassedManagers] = useState<string[]>([]);
+
   // Bidder Local Bid Input State
   const [bidAmount, setBidAmount] = useState("");
+  const [hostBidAmount, setHostBidAmount] = useState("");
 
   // Sound option
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -307,6 +313,8 @@ function GamePlayerContent() {
   const timerValueRef = useRef(timerValue);
   const historyRef = useRef(history);
   const gameCommentaryRef = useRef(gameCommentary);
+  const passedManagersRef = useRef(passedManagers);
+  const hostClaimedTeamIdRef = useRef(hostClaimedTeamId);
 
   useEffect(() => { roomNameRef.current = roomName; }, [roomName]);
   useEffect(() => { currencySymbolRef.current = currencySymbol; }, [currencySymbol]);
@@ -319,6 +327,8 @@ function GamePlayerContent() {
   useEffect(() => { timerValueRef.current = timerValue; }, [timerValue]);
   useEffect(() => { historyRef.current = history; }, [history]);
   useEffect(() => { gameCommentaryRef.current = gameCommentary; }, [gameCommentary]);
+  useEffect(() => { passedManagersRef.current = passedManagers; }, [passedManagers]);
+  useEffect(() => { hostClaimedTeamIdRef.current = hostClaimedTeamId; }, [hostClaimedTeamId]);
 
   // play audio helper
   const playSound = useCallback((frequency: number, type: OscillatorType = "sine", duration: number = 0.1) => {
@@ -371,6 +381,7 @@ function GamePlayerContent() {
           commentary: comments,
           roomName: roomNameRef.current,
           currencySymbol: currencySymbolRef.current,
+          passedManagers: passedManagersRef.current,
         },
       });
     }
@@ -467,6 +478,54 @@ function GamePlayerContent() {
           return updated;
         });
       })
+      .on("broadcast", { event: "player_pass_action" }, ({ payload }) => {
+        if (!payload) return;
+        const { teamId } = payload;
+
+        setPassedManagers((prevPassed) => {
+          if (prevPassed.includes(teamId)) return prevPassed;
+          const updatedPassed = [...prevPassed, teamId];
+          passedManagersRef.current = updatedPassed;
+
+          const team = teamsRef.current.find(t => t.id === teamId);
+          const passLogText = `Manager "${team?.managerName || team?.name || teamId}" is Not Interested.`;
+
+          setGameCommentary((prevLogs) => {
+            const updatedLogs = [passLogText, ...prevLogs];
+
+            const activeConnectedTeamIds = connectedPlayersRef.current
+              .map(p => p.teamId)
+              .filter(tId => {
+                const tm = teamsRef.current.find(t => t.id === tId);
+                return tm ? tm.playerCount < 10 : false;
+              });
+
+            const allPassed = activeConnectedTeamIds.length > 0 && activeConnectedTeamIds.every(tId => updatedPassed.includes(tId));
+
+            broadcastGameState(
+              "active",
+              connectedPlayersRef.current,
+              teamsRef.current,
+              currentBiddingPlayerRef.current,
+              currentHighestBidRef.current,
+              currentHighestBidderIdRef.current,
+              timerValueRef.current,
+              historyRef.current,
+              updatedLogs
+            );
+
+            if (allPassed) {
+              setTimeout(() => {
+                resolveNomination();
+              }, 600);
+            }
+
+            return updatedLogs;
+          });
+
+          return updatedPassed;
+        });
+      })
       .on("broadcast", { event: "place_bid_action" }, ({ payload }) => {
         if (!payload) return;
         const { teamId, amount } = payload;
@@ -476,15 +535,32 @@ function GamePlayerContent() {
           if (!team || amount > team.remainingBudget || team.playerCount >= 10) return prevTeams;
           playSound(660, "sine", 0.1);
 
-          setCurrentHighestBid(amount);
-          setCurrentHighestBidderId(teamId);
-          setTimerValue(5); // Reset timer to 5s on bid
+          setPassedManagers((prevPassed) => {
+            const updatedPassed = prevPassed.filter((id) => id !== teamId);
+            passedManagersRef.current = updatedPassed;
 
-          const bidderText = `Manager "${team.managerName || team.name}" placed a bid of ${formatAmount(amount, currencySymbol)}!`;
-          setGameCommentary((prevLogs) => {
-            const updatedLogs = [bidderText, ...prevLogs];
-            broadcastGameState("active", connectedPlayers, prevTeams, currentBiddingPlayer, amount, teamId, 5, history, updatedLogs);
-            return updatedLogs;
+            setCurrentHighestBid(amount);
+            setCurrentHighestBidderId(teamId);
+            setTimerValue(30); // Reset timer to 30s on bid
+
+            const bidderText = `Manager "${team.managerName || team.name}" bid ${formatAmount(amount, currencySymbol)}!`;
+            setGameCommentary((prevLogs) => {
+              const updatedLogs = [bidderText, ...prevLogs];
+              broadcastGameState(
+                "active",
+                connectedPlayersRef.current,
+                prevTeams,
+                currentBiddingPlayerRef.current,
+                amount,
+                teamId,
+                30,
+                historyRef.current,
+                updatedLogs
+              );
+              return updatedLogs;
+            });
+
+            return updatedPassed;
           });
 
           return prevTeams;
@@ -577,12 +653,14 @@ function GamePlayerContent() {
           setCurrentBiddingPlayer(nextPlayer);
           setCurrentHighestBid(0);
           setCurrentHighestBidderId(null);
-          setTimerValue(5);
+          setTimerValue(30);
+          setPassedManagers([]);
+          passedManagersRef.current = [];
 
           const nominateText = `Cricketer Nominated: ${nextPlayer.name} (${ROLE_LABELS[nextPlayer.role] || nextPlayer.role}). Base price: ${formatAmount(nextPlayer.basePrice, currencySymbol)}.`;
           const finalCommentary = [nominateText, ...updatedCommentary];
           setGameCommentary(finalCommentary);
-          broadcastGameState("active", connectedPlayers, updatedTeams, nextPlayer, 0, null, 5, nextHistory, finalCommentary);
+          broadcastGameState("active", connectedPlayers, updatedTeams, nextPlayer, 0, null, 30, nextHistory, finalCommentary);
         } else {
           setGameStatus("completed");
           setCurrentBiddingPlayer(null);
@@ -607,7 +685,9 @@ function GamePlayerContent() {
     setCurrentBiddingPlayer(firstPlayer);
     setCurrentHighestBid(0);
     setCurrentHighestBidderId(null);
-    setTimerValue(5);
+    setTimerValue(30);
+    setPassedManagers([]);
+    passedManagersRef.current = [];
     setIsTimerPaused(false);
     playSound(523, "sine", 0.3);
 
@@ -615,7 +695,7 @@ function GamePlayerContent() {
     const comments = [introText, "Bidding has officially commenced!"];
     setGameCommentary(comments);
 
-    broadcastGameState("active", connectedPlayers, teams, firstPlayer, 0, null, 5, [], comments);
+    broadcastGameState("active", connectedPlayers, teams, firstPlayer, 0, null, 30, [], comments);
   };
 
   const handleGamePlayerRoleChange = (newRole: any) => {
@@ -702,11 +782,12 @@ function GamePlayerContent() {
           setCurrentBiddingPlayer(payload.currentBiddingPlayer);
           setCurrentHighestBid(payload.currentHighestBid || 0);
           setCurrentHighestBidderId(payload.currentHighestBidderId);
-          setTimerValue(payload.timerValue !== undefined ? payload.timerValue : 5);
+          setTimerValue(payload.timerValue !== undefined ? payload.timerValue : 30);
           setGameCommentary(payload.commentary || []);
           setHistory(payload.history || []);
           setRoomName(payload.roomName || "");
           setCurrencySymbol(payload.currencySymbol || "₹");
+          setPassedManagers(payload.passedManagers || []);
         }
       })
       .subscribe((status) => {
@@ -753,8 +834,10 @@ function GamePlayerContent() {
   useEffect(() => {
     if (currentBiddingPlayer) {
       setBidAmount(nextBidAmount.toString());
+      setHostBidAmount(nextBidAmount.toString());
     } else {
       setBidAmount("");
+      setHostBidAmount("");
     }
   }, [currentHighestBid, currentBiddingPlayer, nextBidAmount]);
 
@@ -1215,12 +1298,65 @@ function GamePlayerContent() {
                 </div>
               </div>
 
+              {/* Host Team Claiming */}
+              <div className="space-y-2 border-t border-slate-100 dark:border-white/5 pt-4">
+                <label className="block text-xs font-black uppercase text-slate-500 dark:text-slate-400">
+                  Claim a Team for Yourself (Optional)
+                </label>
+                <select
+                  value={hostClaimedTeamId || ""}
+                  onChange={(e) => {
+                    const selectedId = e.target.value || null;
+                    const prevId = hostClaimedTeamId;
+                    setHostClaimedTeamId(selectedId);
+                    
+                    setTeams((prevTeams) => {
+                      const updatedTeams = prevTeams.map((t) => {
+                        if (prevId && t.id === prevId) {
+                          return { ...t, managerName: "" };
+                        }
+                        if (selectedId && t.id === selectedId) {
+                          return { ...t, managerName: "Host (You)" };
+                        }
+                        return t;
+                      });
+                      
+                      setConnectedPlayers((prevPlayers) => {
+                        let filtered = prevPlayers.filter(p => p.teamId !== prevId);
+                        if (selectedId) {
+                          filtered = [...filtered, { name: "Host (You)", teamId: selectedId }];
+                        }
+                        broadcastGameState("lobby", filtered, updatedTeams, null, 0, null, 30, [], []);
+                        return filtered;
+                      });
+                      
+                      return updatedTeams;
+                    });
+                  }}
+                  className="w-full h-11 px-4 text-sm font-semibold rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 focus:outline-none focus:border-pitch-500 transition text-slate-800 dark:text-slate-200"
+                >
+                  <option value="">-- No Team claimed by Host --</option>
+                  {teams.map((t) => {
+                    const isClaimable = !t.managerName || t.managerName === "Host (You)";
+                    if (!isClaimable) return null;
+                    return (
+                      <option key={t.id} value={t.id}>
+                        {t.name}
+                      </option>
+                    );
+                  })}
+                </select>
+                <span className="text-[10px] text-slate-400 block">
+                  As host, claiming a team allows you to bid or pass directly on this board screen.
+                </span>
+              </div>
+
               <button
                 onClick={handleStartGame}
                 disabled={connectedPlayers.length === 0}
                 className="w-full h-13 rounded-xl bg-pitch-500 hover:bg-pitch-600 text-pitch-950 font-black shadow-lg shadow-pitch-500/20 active:scale-98 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                <Play className="h-4.5 w-4.5" /> Start Live Draft Countdown
+                <Play className="h-4.5 w-4.5" /> Start Live Draft Room
               </button>
             </div>
           </main>
@@ -1260,7 +1396,7 @@ function GamePlayerContent() {
                             {currentBiddingPlayer.name.charAt(0)}
                           </div>
                           <div className={`absolute -top-3 -right-3 h-10 w-10 rounded-full flex items-center justify-center text-xs font-black shadow-lg border border-white dark:border-pitch-950 ${
-                            timerValue <= 2 ? "bg-red-600 text-white animate-pulse" : "bg-pitch-500 text-pitch-950"
+                            timerValue <= 5 ? "bg-red-600 text-white animate-pulse" : "bg-pitch-500 text-pitch-950"
                           }`}>
                             <Clock className="h-3.5 w-3.5 mr-0.5" /> {timerValue}s
                           </div>
@@ -1300,6 +1436,20 @@ function GamePlayerContent() {
                           <span className="text-xs font-bold text-slate-500 mt-2 uppercase">
                             Held by: <strong className="text-slate-800 dark:text-slate-200">{teams.find(t=>t.id===currentHighestBidderId)?.name}</strong>
                           </span>
+                        )}
+
+                        {/* Passed Managers Status */}
+                        {passedManagers.length > 0 && (
+                          <div className="text-xs text-slate-500 flex flex-wrap gap-1.5 justify-center items-center mt-3 border-t border-slate-100 dark:border-white/5 pt-3 w-full max-w-md px-4">
+                            <span className="font-bold text-[9px] uppercase text-red-500 flex items-center gap-1">
+                              <XCircle className="h-3.5 w-3.5" /> Not Interested:
+                            </span>
+                            {passedManagers.map((pId) => (
+                              <span key={pId} className="inline-block px-2 py-0.5 rounded bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 font-bold uppercase text-[9px]">
+                                {teams.find(t => t.id === pId)?.name || pId}
+                              </span>
+                            ))}
+                          </div>
                         )}
                       </div>
 
@@ -1341,6 +1491,198 @@ function GamePlayerContent() {
                     </div>
                   )}
                 </div>
+
+                {/* Host's Player Bidding Controls */}
+                {hostClaimedTeamId && currentBiddingPlayer && (
+                  <div className="glass-card rounded-3xl p-5 border border-slate-200 dark:border-white/5 bg-white dark:bg-white/[0.02] shadow-md space-y-4 mt-4">
+                    <div className="flex justify-between items-center border-b border-slate-100 dark:border-white/5 pb-2.5">
+                      <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
+                        Your Team Bidding Controls ({teams.find(t=>t.id===hostClaimedTeamId)?.name})
+                      </span>
+                      <span className="text-[10px] font-black text-pitch-500 uppercase">
+                        Budget Left: {formatAmount(teams.find(t=>t.id===hostClaimedTeamId)?.remainingBudget || 0, currencySymbol)}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row gap-4 items-end">
+                      <div className="flex-1 w-full space-y-2">
+                        <label className="block text-xs font-black uppercase text-slate-500 dark:text-slate-400">
+                          Your Bid Amount
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">
+                            {currencySymbol}
+                          </span>
+                          <input
+                            type="number"
+                            min={nextBidAmount}
+                            step={stepSize}
+                            value={hostBidAmount}
+                            onChange={(e) => setHostBidAmount(e.target.value)}
+                            className="w-full h-12 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.03] pl-8 pr-4 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-pitch-500 transition font-black"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2 w-full sm:w-auto shrink-0">
+                        {/* Host Not Interested Button */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!hostClaimedTeamId) return;
+                            setPassedManagers((prevPassed) => {
+                              if (prevPassed.includes(hostClaimedTeamId)) return prevPassed;
+                              const updatedPassed = [...prevPassed, hostClaimedTeamId];
+                              passedManagersRef.current = updatedPassed;
+
+                              const team = teams.find(t => t.id === hostClaimedTeamId);
+                              const passLog = `Manager "${team?.managerName || team?.name || "Host"}" is Not Interested.`;
+
+                              setGameCommentary((prevLogs) => {
+                                const updatedLogs = [passLog, ...prevLogs];
+
+                                const activeConnectedTeamIds = connectedPlayers
+                                  .map(p => p.teamId)
+                                  .filter(tId => {
+                                    const tm = teams.find(t => t.id === tId);
+                                    return tm ? tm.playerCount < 10 : false;
+                                  });
+
+                                const allPassed = activeConnectedTeamIds.length > 0 && activeConnectedTeamIds.every(tId => updatedPassed.includes(tId));
+
+                                broadcastGameState(
+                                  "active",
+                                  connectedPlayers,
+                                  teams,
+                                  currentBiddingPlayer,
+                                  currentHighestBid,
+                                  currentHighestBidderId,
+                                  timerValue,
+                                  history,
+                                  updatedLogs
+                                );
+
+                                if (allPassed) {
+                                  setTimeout(() => {
+                                    resolveNomination();
+                                  }, 600);
+                                }
+
+                                return updatedLogs;
+                              });
+
+                              return updatedPassed;
+                            });
+                          }}
+                          disabled={passedManagers.includes(hostClaimedTeamId) || (teams.find(t=>t.id===hostClaimedTeamId)?.playerCount || 0) >= 10}
+                          className={`h-12 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shrink-0 ${
+                            passedManagers.includes(hostClaimedTeamId)
+                              ? "bg-slate-200 dark:bg-white/5 border border-slate-300 dark:border-white/10 text-slate-400 cursor-default"
+                              : "border border-red-500/30 dark:border-red-500/20 hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/40 text-red-600 dark:text-red-400 active:scale-98"
+                          }`}
+                        >
+                          <XCircle className="h-4.5 w-4.5" />
+                          {passedManagers.includes(hostClaimedTeamId) ? "Passed" : "Not Interested"}
+                        </button>
+
+                        {/* Host Bid Button */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!hostClaimedTeamId || !currentBiddingPlayer) return;
+                            const amount = Number(hostBidAmount);
+                            const hostTeam = teams.find(t => t.id === hostClaimedTeamId);
+                            const hostBudget = hostTeam ? hostTeam.remainingBudget : 0;
+                            if (isNaN(amount) || amount < nextBidAmount) {
+                              alert(`Minimum bid is ${formatAmount(nextBidAmount, currencySymbol)}`);
+                              return;
+                            }
+                            if (amount > hostBudget) {
+                              alert("Over Budget! You cannot place this bid.");
+                              return;
+                            }
+
+                            setTeams((prevTeams) => {
+                              playSound(660, "sine", 0.1);
+
+                              setPassedManagers((prevPassed) => {
+                                const updatedPassed = prevPassed.filter((id) => id !== hostClaimedTeamId);
+                                passedManagersRef.current = updatedPassed;
+
+                                setCurrentHighestBid(amount);
+                                setCurrentHighestBidderId(hostClaimedTeamId);
+                                setTimerValue(30);
+
+                                const bidderText = `Manager "Host (You)" bid ${formatAmount(amount, currencySymbol)}!`;
+                                setGameCommentary((prevLogs) => {
+                                  const updatedLogs = [bidderText, ...prevLogs];
+                                  broadcastGameState(
+                                    "active",
+                                    connectedPlayers,
+                                    prevTeams,
+                                    currentBiddingPlayer,
+                                    amount,
+                                    hostClaimedTeamId,
+                                    30,
+                                    history,
+                                    updatedLogs
+                                  );
+                                  return updatedLogs;
+                                });
+
+                                return updatedPassed;
+                              });
+
+                              return prevTeams;
+                            });
+                          }}
+                          disabled={
+                            currentHighestBidderId === hostClaimedTeamId ||
+                            Number(hostBidAmount) > (teams.find(t=>t.id===hostClaimedTeamId)?.remainingBudget || 0) ||
+                            Number(hostBidAmount) < nextBidAmount ||
+                            (teams.find(t=>t.id===hostClaimedTeamId)?.playerCount || 0) >= 10
+                          }
+                          className={`h-12 px-6 rounded-xl text-sm font-black transition flex items-center justify-center gap-2 shadow-lg shrink-0 flex-1 ${
+                            (teams.find(t=>t.id===hostClaimedTeamId)?.playerCount || 0) >= 10
+                              ? "bg-red-500/10 border border-red-500/20 text-red-500 cursor-not-allowed"
+                              : currentHighestBidderId === hostClaimedTeamId
+                              ? "bg-pitch-500/10 border border-pitch-500/20 text-pitch-500 cursor-default"
+                              : Number(hostBidAmount) <= (teams.find(t=>t.id===hostClaimedTeamId)?.remainingBudget || 0) && Number(hostBidAmount) >= nextBidAmount
+                              ? "bg-pitch-500 hover:bg-pitch-600 text-pitch-950 shadow-pitch-500/25 active:scale-98"
+                              : "bg-slate-200 dark:bg-white/5 border border-slate-300 dark:border-white/10 text-slate-400 cursor-not-allowed"
+                          }`}
+                        >
+                          <Hammer className="h-4.5 w-4.5 shrink-0" />
+                          {(teams.find(t=>t.id===hostClaimedTeamId)?.playerCount || 0) >= 10 ? "Squad Full (10/10)" : currentHighestBidderId === hostClaimedTeamId ? "Highest Bidder" : "Bid"}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Quick increments for Host */}
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { label: "+10% Base", multiplier: 0.1 },
+                        { label: "+20% Base", multiplier: 0.2 },
+                        { label: "+50% Base", multiplier: 0.5 },
+                      ].map((opt) => {
+                        const increment = Math.max(1, Math.round(currentBiddingPlayer.basePrice * opt.multiplier));
+                        return (
+                          <button
+                            key={opt.label}
+                            type="button"
+                            onClick={() => {
+                              const targetVal = Math.max(nextBidAmount, currentHighestBid + increment);
+                              setHostBidAmount(String(targetVal));
+                            }}
+                            className="py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] hover:bg-slate-100 dark:hover:bg-white/5 text-[10px] font-black text-slate-600 dark:text-slate-300 active:scale-98 transition"
+                          >
+                            {opt.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Leaderboard/Rosters panel (4 cols) */}
@@ -1629,7 +1971,7 @@ function GamePlayerContent() {
                             {currentBiddingPlayer.name.charAt(0)}
                           </div>
                           <div className={`absolute -top-3 -right-3 h-10 w-10 rounded-full flex items-center justify-center text-xs font-black shadow-lg border border-white dark:border-pitch-950 ${
-                            timerValue <= 2 ? "bg-red-600 text-white animate-pulse" : "bg-pitch-500 text-pitch-950"
+                            timerValue <= 5 ? "bg-red-600 text-white animate-pulse" : "bg-pitch-500 text-pitch-950"
                           }`}>
                             <Clock className="h-3 w-3 mr-0.5" /> {timerValue}s
                           </div>
@@ -1659,6 +2001,20 @@ function GamePlayerContent() {
                             {isHighestBidder && <span className="text-[10px] font-black text-pitch-500 ml-1.5">(Your Bid!)</span>}
                           </span>
                         )}
+
+                        {/* Passed Managers Status */}
+                        {passedManagers.length > 0 && (
+                          <div className="text-xs text-slate-500 flex flex-wrap gap-1.5 justify-center items-center mt-3 border-t border-slate-100 dark:border-white/5 pt-3 w-full max-w-md px-4">
+                            <span className="font-bold text-[9px] uppercase text-red-500 flex items-center gap-1">
+                              <XCircle className="h-3.5 w-3.5" /> Not Interested:
+                            </span>
+                            {passedManagers.map((pId) => (
+                              <span key={pId} className="inline-block px-2 py-0.5 rounded bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 font-bold uppercase text-[9px]">
+                                {teams.find(t => t.id === pId)?.name || pId}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
 
                       {/* Bidding Controls (spinner and increments) */}
@@ -1683,42 +2039,68 @@ function GamePlayerContent() {
                             </div>
                           </div>
 
-                          <button
-                            onClick={() => {
-                              if (!channelRef.current || !currentBiddingPlayer) return;
-                              const amount = Number(bidAmount);
-                              if (isNaN(amount) || amount < nextBidAmount) {
-                                alert(`Minimum bid is ${formatAmount(nextBidAmount, currencySymbol)}`);
-                                return;
-                              }
-                              if (amount > myBudget) {
-                                alert("Over Budget! You cannot place this bid.");
-                                return;
-                              }
-                              
-                              channelRef.current.send({
-                                type: "broadcast",
-                                event: "place_bid_action",
-                                payload: {
-                                  teamId: selectedTeamId,
-                                  amount,
-                                },
-                              });
-                            }}
-                            disabled={!canBid || Number(bidAmount) > myBudget || Number(bidAmount) < nextBidAmount || isSquadFull}
-                            className={`h-12 px-6 rounded-xl text-sm font-black transition flex items-center justify-center gap-2 shadow-lg shrink-0 ${
-                              isSquadFull
-                                ? "bg-red-500/10 border border-red-500/20 text-red-500 cursor-not-allowed"
-                                : isHighestBidder
-                                ? "bg-pitch-500/10 border border-pitch-500/20 text-pitch-500 cursor-default"
-                                : canBid && Number(bidAmount) <= myBudget && Number(bidAmount) >= nextBidAmount
-                                ? "bg-pitch-500 hover:bg-pitch-600 text-pitch-950 shadow-pitch-500/25 active:scale-98"
-                                : "bg-slate-200 dark:bg-white/5 border border-slate-300 dark:border-white/10 text-slate-400 cursor-not-allowed"
-                            }`}
-                          >
-                            <Hammer className="h-4.5 w-4.5 shrink-0" />
-                            {isSquadFull ? "Squad Full (10/10)" : isHighestBidder ? "Highest Bidder" : "Place Bid"}
-                          </button>
+                          <div className="flex gap-2 w-full sm:w-auto shrink-0">
+                            {/* Not Interested Button */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (!channelRef.current || !selectedTeamId) return;
+                                channelRef.current.send({
+                                  type: "broadcast",
+                                  event: "player_pass_action",
+                                  payload: { teamId: selectedTeamId }
+                                });
+                              }}
+                              disabled={passedManagers.includes(selectedTeamId) || isSquadFull}
+                              className={`h-12 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shrink-0 ${
+                                passedManagers.includes(selectedTeamId)
+                                  ? "bg-slate-200 dark:bg-white/5 border border-slate-300 dark:border-white/10 text-slate-400 cursor-default"
+                                  : "border border-red-500/30 dark:border-red-500/20 hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/40 text-red-600 dark:text-red-400 active:scale-98"
+                              }`}
+                            >
+                              <XCircle className="h-4.5 w-4.5" />
+                              {passedManagers.includes(selectedTeamId) ? "Passed" : "Not Interested"}
+                            </button>
+
+                            {/* Bid Button */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (!channelRef.current || !currentBiddingPlayer) return;
+                                const amount = Number(bidAmount);
+                                if (isNaN(amount) || amount < nextBidAmount) {
+                                  alert(`Minimum bid is ${formatAmount(nextBidAmount, currencySymbol)}`);
+                                  return;
+                                }
+                                if (amount > myBudget) {
+                                  alert("Over Budget! You cannot place this bid.");
+                                  return;
+                                }
+                                
+                                channelRef.current.send({
+                                  type: "broadcast",
+                                  event: "place_bid_action",
+                                  payload: {
+                                    teamId: selectedTeamId,
+                                    amount,
+                                  },
+                                });
+                              }}
+                              disabled={!canBid || Number(bidAmount) > myBudget || Number(bidAmount) < nextBidAmount || isSquadFull}
+                              className={`h-12 px-6 rounded-xl text-sm font-black transition flex items-center justify-center gap-2 shadow-lg shrink-0 flex-1 ${
+                                isSquadFull
+                                  ? "bg-red-500/10 border border-red-500/20 text-red-500 cursor-not-allowed"
+                                  : isHighestBidder
+                                  ? "bg-pitch-500/10 border border-pitch-500/20 text-pitch-500 cursor-default"
+                                  : canBid && Number(bidAmount) <= myBudget && Number(bidAmount) >= nextBidAmount
+                                  ? "bg-pitch-500 hover:bg-pitch-600 text-pitch-950 shadow-pitch-500/25 active:scale-98"
+                                  : "bg-slate-200 dark:bg-white/5 border border-slate-300 dark:border-white/10 text-slate-400 cursor-not-allowed"
+                              }`}
+                            >
+                              <Hammer className="h-4.5 w-4.5 shrink-0" />
+                              {isSquadFull ? "Squad Full (10/10)" : isHighestBidder ? "Highest Bidder" : "Bid"}
+                            </button>
+                          </div>
                         </div>
 
                         {/* Quick increments based on basePrice percent */}
