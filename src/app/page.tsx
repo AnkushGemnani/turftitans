@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, Search, Shield, Trophy, Zap, Star, Check, X, ShieldAlert, Award, FileSpreadsheet, Heart, Landmark, Settings, UserCheck, Users, ChevronRight, Sparkles } from "lucide-react";
+import { ArrowRight, Search, Shield, Trophy, Zap, Star, Check, X, ShieldAlert, Award, FileSpreadsheet, Heart, Landmark, Settings, UserCheck, Users, ChevronRight, Sparkles, Menu } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { AuroraBackground } from "@/components/ui/aurora-background";
 import { CricketLoader } from "@/components/landing/cricket-loader";
@@ -12,6 +12,7 @@ import { AnimatePresence, motion } from "framer-motion";
 export default function HomePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -137,12 +138,81 @@ export default function HomePage() {
             </Link>
             <Link
               href="/sign-up"
-              className="inline-flex h-8 sm:h-9 items-center justify-center rounded-lg bg-pitch-500 hover:bg-pitch-600 text-pitch-950 px-2.5 sm:px-4 text-[10px] sm:text-xs font-black transition-all active:scale-98 shadow-[0_0_20px_rgba(16,185,129,0.2)]"
+              className="hidden sm:inline-flex h-8 sm:h-9 items-center justify-center rounded-lg bg-pitch-500 hover:bg-pitch-600 text-pitch-950 px-4 text-xs font-black transition-all active:scale-98 shadow-[0_0_20px_rgba(16,185,129,0.2)]"
             >
               Sign Up
             </Link>
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 dark:border-white/10 bg-white/70 dark:bg-white/[0.02] text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors"
+              aria-label="Toggle Menu"
+            >
+              {mobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+            </button>
           </div>
         </header>
+
+        {/* Mobile Menu Overlay */}
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="absolute top-18 left-4 right-4 z-50 p-4 rounded-2xl border border-slate-200 dark:border-white/10 bg-white/95 dark:bg-pitch-950/95 shadow-xl backdrop-blur-xl md:hidden flex flex-col gap-3 font-semibold text-sm text-slate-700 dark:text-slate-300"
+            >
+              <a 
+                href="#story-ankush" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="hover:text-pitch-500 p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+              >
+                Our Story
+              </a>
+              <a 
+                href="#how-it-works" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="hover:text-pitch-500 p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+              >
+                How It Works
+              </a>
+              <a 
+                href="#features" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="hover:text-pitch-500 p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+              >
+                Features
+              </a>
+              <a 
+                href="#gallery" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="hover:text-pitch-500 p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+              >
+                Gallery
+              </a>
+              <Link 
+                href="/quick-auction" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="text-rose-500 hover:text-rose-600 dark:text-rose-400 dark:hover:text-rose-350 p-2 rounded-xl hover:bg-rose-500/5 transition-colors font-bold flex items-center gap-1.5"
+              >
+                <Zap className="h-4 w-4" /> Quick Auction
+              </Link>
+              <Link 
+                href="/quick-auction/game-player" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="text-amber-500 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-350 p-2 rounded-xl hover:bg-amber-500/5 transition-colors font-bold flex items-center gap-1.5"
+              >
+                <Trophy className="h-4 w-4" /> Play Auction Game
+              </Link>
+              <Link 
+                href="/sign-up" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="bg-pitch-500 hover:bg-pitch-600 text-pitch-950 p-2.5 rounded-xl text-center text-xs font-black transition-all active:scale-98 shadow-sm flex items-center justify-center gap-1.5"
+              >
+                Create Account
+              </Link>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Hero Content */}
         <div className="relative z-10 flex-1 flex items-center">
@@ -466,7 +536,7 @@ export default function HomePage() {
             <p className="text-sm text-slate-500 dark:text-slate-400 max-w-lg mx-auto">From setup to game day, we&apos;ve streamlined every step of tournament management.</p>
           </div>
 
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-5 relative">
+          <div className="flex overflow-x-auto pb-4 gap-6 snap-x snap-mandatory lg:grid lg:grid-cols-5 relative scrollbar-none">
             {/* Connecting line */}
             <div className="hidden lg:block absolute top-10 left-[10%] right-[10%] h-[2px] bg-gradient-to-r from-transparent via-pitch-500/20 to-transparent" />
 
@@ -481,7 +551,7 @@ export default function HomePage() {
               return (
                 <div 
                   key={item.step} 
-                  className="glass-card glass-card-hover p-6 rounded-2xl relative text-left space-y-4 group"
+                  className="glass-card glass-card-hover p-6 rounded-2xl relative text-left space-y-4 group min-w-[240px] sm:min-w-0 snap-center shrink-0"
                 >
                   <div className="h-8 w-8 rounded-full bg-pitch-500 text-pitch-950 font-display font-black flex items-center justify-center text-sm shadow-[0_0_15px_rgba(16,185,129,0.2)] relative z-10">
                     {item.step}
@@ -512,7 +582,7 @@ export default function HomePage() {
             </h2>
           </div>
 
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="flex overflow-x-auto pb-4 gap-6 snap-x snap-mandatory md:grid md:grid-cols-3 scrollbar-none">
             {[
               { icon: Trophy, title: "Tournament Management", desc: "Create and configure tournament profiles, match dates, entries, and slot limits in minutes." },
               { icon: Landmark, title: "Payment Tracking", desc: "Examine registry logs and verify payments, approving player entries in one dashboard." },
@@ -525,7 +595,7 @@ export default function HomePage() {
               return (
                 <div 
                   key={item.title} 
-                  className="glass-card glass-card-hover p-6 rounded-2xl space-y-4 group border border-slate-200/50"
+                  className="glass-card glass-card-hover p-6 rounded-2xl space-y-4 group border border-slate-200/50 min-w-[260px] sm:min-w-0 snap-center shrink-0"
                 >
                   <div className="h-10 w-10 rounded-xl bg-white/90 dark:bg-pitch-950/80 border border-slate-200 dark:border-white/5 flex items-center justify-center group-hover:border-pitch-500/20 transition-all duration-300">
                     <Icon className="h-5 w-5 text-pitch-500 dark:text-pitch-400" aria-hidden />
@@ -554,13 +624,13 @@ export default function HomePage() {
             <p className="text-sm text-slate-500 dark:text-slate-400 max-w-lg mx-auto">Every tournament is a story. Here&apos;s how TurfTitans brings yours to life.</p>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="flex overflow-x-auto pb-4 gap-4 snap-x snap-mandatory md:grid md:grid-cols-3 scrollbar-none">
             {[
               { src: "/images/hero-turf-ground.png", title: "The Arena", desc: "Where legends are made. Set up your tournament with a few clicks." },
               { src: "/images/auction-atmosphere.png", title: "Auction Night", desc: "The thrill of IPL-style auctions, right in your pocket." },
               { src: "/images/team-celebration.png", title: "Victory Moment", desc: "Balanced teams, fair play, unforgettable memories." },
             ].map((img) => (
-              <div key={img.title} className="group relative rounded-2xl overflow-hidden border border-slate-200/50 dark:border-white/10 shadow-lg">
+              <div key={img.title} className="group relative rounded-2xl overflow-hidden border border-slate-200/50 dark:border-white/10 shadow-lg min-w-[260px] sm:min-w-0 snap-center shrink-0">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={img.src}
