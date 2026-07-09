@@ -1,6 +1,6 @@
 import { Search } from "lucide-react";
-import { TournamentCard } from "@/components/tournaments/tournament-card";
 import { createClient } from "@/lib/supabase/server";
+import { TournamentsListClient } from "@/components/tournaments/tournaments-list-client";
 
 type TournamentsPageProps = {
   searchParams: Promise<{
@@ -19,6 +19,7 @@ type TournamentListItem = {
   max_players: number;
   banner_url: string | null;
   banner_path: string | null;
+  status: "draft" | "open" | "locked" | "auction" | "completed" | "cancelled" | "archived";
   registrations?: Array<{ status: string }>;
 };
 
@@ -31,7 +32,7 @@ export default async function TournamentsPage({ searchParams }: TournamentsPageP
 
   let tournamentsQuery = supabase
     .from("tournaments")
-    .select("id,name,location,start_date,registration_fee,max_players,banner_url,banner_path,registrations(id,status)")
+    .select("id,name,location,start_date,registration_fee,max_players,banner_url,banner_path,status,registrations(id,status)")
     .order("start_date", { ascending: sort === "asc" });
 
   if (query) {
@@ -108,11 +109,7 @@ export default async function TournamentsPage({ searchParams }: TournamentsPageP
 
       {/* Grid List */}
       {items.length ? (
-        <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {items.map((tournament) => (
-            <TournamentCard key={tournament.id} tournament={tournament} />
-          ))}
-        </section>
+        <TournamentsListClient items={items} />
       ) : (
         <section className="rounded-2xl border border-dashed border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.01] p-12 text-center shadow-sm">
           <Search className="mx-auto h-10 w-10 text-slate-400 dark:text-slate-600" aria-hidden />

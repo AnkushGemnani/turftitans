@@ -6,6 +6,7 @@ import { loginAction, type AuthActionState } from "@/app/(auth)/actions";
 import { AuthStatusNotice } from "@/components/auth/auth-status-notice";
 import { Notice } from "@/components/ui/notice";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 
 const initialState: AuthActionState = {
   status: "idle",
@@ -52,7 +53,18 @@ export function LoginForm() {
 
       <SubmitButton>Log in</SubmitButton>
 
-      <p className="text-center text-sm text-slate-600 dark:text-slate-300">
+      <div className="relative my-6 flex items-center justify-center">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-slate-200 dark:border-white/10"></div>
+        </div>
+        <span className="relative bg-white dark:bg-[#030604] px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+          Or continue with
+        </span>
+      </div>
+
+      <GoogleSignInButton />
+
+      <p className="text-center text-sm text-slate-600 dark:text-slate-300 pt-2">
         New to TurfTitans?{" "}
         <Link href="/sign-up" className="font-bold text-pitch-600 dark:text-pitch-400 hover:text-pitch-500 dark:hover:text-pitch-300">
           Create an account

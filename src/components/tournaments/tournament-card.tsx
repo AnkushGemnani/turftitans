@@ -12,8 +12,19 @@ type TournamentCardProps = {
     max_players: number;
     banner_url: string | null;
     banner_path?: string | null;
+    status: "draft" | "open" | "locked" | "auction" | "completed" | "cancelled" | "archived";
     registrations?: Array<{ status: string }>;
   };
+};
+
+const STATUS_STYLES: Record<string, { label: string; styles: string; pulse?: boolean }> = {
+  draft: { label: "Draft", styles: "border-blue-500/20 bg-blue-500/5 text-blue-600 dark:text-blue-450" },
+  open: { label: "Open", styles: "border-emerald-500/20 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400" },
+  locked: { label: "Closed", styles: "border-amber-500/20 bg-amber-500/5 text-amber-600 dark:text-amber-400" },
+  auction: { label: "Live Auction", styles: "border-rose-500/20 bg-rose-500/5 text-rose-600 dark:text-rose-400", pulse: true },
+  completed: { label: "Completed", styles: "border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400" },
+  cancelled: { label: "Cancelled", styles: "border-red-500/20 bg-red-500/5 text-red-600 dark:text-red-400" },
+  archived: { label: "Archived", styles: "border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400" },
 };
 
 export function TournamentCard({ tournament }: TournamentCardProps) {
@@ -21,6 +32,11 @@ export function TournamentCard({ tournament }: TournamentCardProps) {
     tournament.registrations?.filter((registration) => registration.status === "approved").length ?? 0;
   const remainingSlots = Math.max(tournament.max_players - registeredCount, 0);
   const banner = tournament.banner_url ?? tournament.banner_path;
+
+  const statusInfo = STATUS_STYLES[tournament.status] || {
+    label: tournament.status,
+    styles: "border-slate-200/50 dark:border-white/10 bg-white/80 dark:bg-pitch-950/80 text-slate-600 dark:text-slate-400",
+  };
 
   return (
     <Link
@@ -41,9 +57,15 @@ export function TournamentCard({ tournament }: TournamentCardProps) {
             <span className="text-4xl font-black font-display tracking-widest opacity-80 glow-text-green">TT</span>
           </div>
         )}
-        <div className="absolute top-3 right-3">
-          <span className="rounded-lg border border-slate-200/50 dark:border-pitch-500/20 bg-white/80 dark:bg-pitch-950/80 backdrop-blur-md px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-pitch-600 dark:text-pitch-400">
-            Open
+        <div className="absolute top-3 right-3 flex items-center gap-1.5">
+          <span className={`inline-flex items-center gap-1.5 rounded-lg border backdrop-blur-md px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${statusInfo.styles}`}>
+            {statusInfo.pulse && (
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-450 opacity-75" />
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-rose-500" />
+              </span>
+            )}
+            {statusInfo.label}
           </span>
         </div>
       </div>
