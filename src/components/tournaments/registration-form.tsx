@@ -13,6 +13,7 @@ type RegistrationFormProps = {
   userProfile: {
     fullName: string;
     phone: string | null;
+    role: string | null;
   } | null;
   onCancel?: () => void;
 };
@@ -105,25 +106,48 @@ export function RegistrationForm({
             Profile details are verified from your account settings. Update your account settings if details are incorrect.
           </p>
 
-          {/* Player Role Dropdown Selection */}
-          <div className="pt-2">
-            <label className="block">
-              <span className="text-xs font-bold text-slate-700 dark:text-slate-200">Select Player Role</span>
-              <select
-                name="role"
-                required
-                className="mt-2 h-11 w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-pitch-950/70 px-4 text-xs font-bold text-slate-900 dark:text-white outline-none transition focus:border-pitch-500 dark:focus:border-pitch-400 focus:ring-1 focus:ring-pitch-500/50"
-              >
-                <option value="" disabled selected>
-                  Select your specialty
-                </option>
-                <option value="batsman">Batsman</option>
-                <option value="bowler">Bowler</option>
-                <option value="all_rounder">All-Rounder</option>
-                <option value="wicket_keeper">Wicket Keeper</option>
-              </select>
-            </label>
-          </div>
+          {/* Player Role Selection/Display */}
+          {!userProfile?.role ? (
+            <div className="pt-2">
+              <label className="block">
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-200">Select Player Role</span>
+                <select
+                  name="role"
+                  required
+                  defaultValue=""
+                  className="mt-2 h-11 w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-pitch-950/70 px-4 text-xs font-bold text-slate-900 dark:text-white outline-none transition focus:border-pitch-500 dark:focus:border-pitch-400 focus:ring-1 focus:ring-pitch-500/50"
+                >
+                  <option value="" disabled>
+                    Select your specialty
+                  </option>
+                  <option value="batsman">Batsman</option>
+                  <option value="bowler">Bowler</option>
+                  <option value="all_rounder">All-Rounder</option>
+                  <option value="wicket_keeper">Wicket Keeper</option>
+                </select>
+              </label>
+            </div>
+          ) : (
+            <div className="pt-2">
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 block mb-2">Player Specialty Role</span>
+              <div className="h-11 w-full rounded-xl border border-slate-200 dark:border-white/5 bg-slate-100/50 dark:bg-pitch-950/40 px-3 flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300 select-none">
+                <ShieldCheck className="h-3.5 w-3.5 text-slate-400" />
+                <span>
+                  {(() => {
+                    const r = userProfile.role;
+                    const labels: Record<string, string> = {
+                      batsman: "Batsman",
+                      bowler: "Bowler",
+                      all_rounder: "All-Rounder",
+                      wicket_keeper: "Wicket Keeper",
+                    };
+                    return labels[r] || r || "Not Provided";
+                  })()}
+                </span>
+              </div>
+              <input type="hidden" name="role" value={userProfile.role} />
+            </div>
+          )}
 
           {/* Action Row */}
           <div className="flex flex-col sm:flex-row gap-3 pt-4 justify-end">

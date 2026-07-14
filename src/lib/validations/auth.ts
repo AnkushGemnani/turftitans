@@ -5,6 +5,9 @@ export const signUpSchema = z.object({
   email: z.string().trim().email("Enter a valid email address."),
   phone: z.string().trim().min(7, "Enter a valid phone number."),
   password: z.string().min(8, "Password must be at least 8 characters."),
+  role: z.enum(["batsman", "bowler", "all_rounder", "wicket_keeper"], {
+    errorMap: () => ({ message: "Select a valid role." }),
+  }),
 });
 
 export const loginSchema = z.object({

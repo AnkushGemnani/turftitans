@@ -29,6 +29,7 @@ export type Database = {
           phone: string | null;
           avatar_url: string | null;
           location: string | null;
+          role: player_role | null;
           created_at: string;
           updated_at: string;
         };
@@ -39,6 +40,7 @@ export type Database = {
           phone?: string | null;
           avatar_url?: string | null;
           location?: string | null;
+          role?: player_role | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -49,6 +51,7 @@ export type Database = {
           phone?: string | null;
           avatar_url?: string | null;
           location?: string | null;
+          role?: player_role | null;
           created_at?: string;
           updated_at?: string;
         };

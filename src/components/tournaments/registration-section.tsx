@@ -10,6 +10,7 @@ type RegistrationSectionProps = {
   userProfile: {
     fullName: string;
     phone: string | null;
+    role: string | null;
   } | null;
 };
 

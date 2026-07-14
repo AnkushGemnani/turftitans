@@ -45,16 +45,46 @@ export async function registerForTournamentAction(
     }
 
     const tournamentId = formData.get("tournamentId") as string;
-    const role = formData.get("role") as string;
 
-    if (!tournamentId || !role) {
+    if (!tournamentId) {
       return { status: "error", message: "Missing required registration details." };
     }
 
-    // Validate role is matching database enum values
-    const validRoles = ["batsman", "bowler", "all_rounder", "wicket_keeper"];
-    if (!validRoles.includes(role)) {
-      return { status: "error", message: "Invalid role selected." };
+    // Retrieve user's profile to get their role
+    const { data: profile, error: profileError } = await userClient
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    if (profileError || !profile) {
+      return { status: "error", message: "User profile not found." };
+    }
+
+    let role = profile.role;
+
+    if (!role) {
+      const submittedRole = formData.get("role") as string;
+      if (!submittedRole) {
+        return { status: "error", message: "Player specialty role is required." };
+      }
+
+      const validRoles = ["batsman", "bowler", "all_rounder", "wicket_keeper"];
+      if (!validRoles.includes(submittedRole)) {
+        return { status: "error", message: "Invalid role selected." };
+      }
+
+      // Update the user's profile with the selected role
+      const { error: updateError } = await userClient
+        .from("profiles")
+        .update({ role: submittedRole as any })
+        .eq("id", user.id);
+
+      if (updateError) {
+        return { status: "error", message: `Failed to save your player role: ${updateError.message}` };
+      }
+
+      role = submittedRole as any;
     }
 
     // Retrieve tournament data

@@ -64,6 +64,7 @@ create table public.profiles (
   phone text,
   avatar_url text,
   location text,
+  role public.player_role,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -157,18 +158,20 @@ security definer
 set search_path = public
 as $$
 begin
-  insert into public.profiles (id, full_name, phone, avatar_url)
+  insert into public.profiles (id, full_name, phone, avatar_url, role)
   values (
     new.id,
     coalesce(nullif(new.raw_user_meta_data ->> 'full_name', ''), split_part(new.email, '@', 1)),
     nullif(new.raw_user_meta_data ->> 'phone', ''),
-    nullif(new.raw_user_meta_data ->> 'avatar_url', '')
+    nullif(new.raw_user_meta_data ->> 'avatar_url', ''),
+    (new.raw_user_meta_data ->> 'role')::public.player_role
   )
   on conflict (id) do update
   set
     full_name = excluded.full_name,
     phone = excluded.phone,
     avatar_url = excluded.avatar_url,
+    role = excluded.role,
     updated_at = now();
 
   return new;

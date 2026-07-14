@@ -7,6 +7,7 @@ type ProfileDetails = {
   full_name: string;
   phone: string | null;
   avatar_url: string | null;
+  role: string | null;
 };
 
 type RegistrationSummary = {
@@ -82,6 +83,12 @@ export default async function ProfilePage() {
                 <Mail className="h-4 w-4 text-pitch-500 dark:text-gold-400" aria-hidden />
                 {user.email}
               </p>
+              {profile?.role && (
+                <p className="flex items-center gap-2 capitalize">
+                  <UserRound className="h-4 w-4 text-pitch-500 dark:text-gold-400" aria-hidden />
+                  Role: {profile.role.replace("_", " ")}
+                </p>
+              )}
               <p className="flex items-center gap-2">
                 <Phone className="h-4 w-4 text-pitch-500 dark:text-gold-400" aria-hidden />
                 {profile?.phone ?? "Phone not added"}
