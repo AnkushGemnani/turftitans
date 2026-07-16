@@ -443,10 +443,6 @@ export async function updateTournamentStatusAction(
     return { status: "error", message: "Only the tournament creator can update its status." };
   }
 
-  if (tournament.status === "archived") {
-    return { status: "error", message: "This tournament is archived and cannot be modified." };
-  }
-
   // Additional rules
   if (status === "locked" && tournament.status === "open") {
     // Check if at least 1 approved player exists

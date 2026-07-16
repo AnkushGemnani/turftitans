@@ -44,14 +44,6 @@ export function TournamentStatusControls({ tournamentId, currentStatus }: Status
     });
   }
 
-  if (currentStatus === "archived") {
-    return (
-      <div className="bg-slate-100 dark:bg-white/[0.02] border border-slate-200/60 dark:border-white/5 p-4 rounded-xl text-center text-xs text-slate-500 font-bold">
-        🔒 Tournament Archived and Read-Only. No status modifications allowed.
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-3">
       <div>
