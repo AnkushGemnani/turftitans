@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CalendarDays, Mail, Phone, Trophy, UserRound, UsersRound } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { LogoutButton } from "@/components/auth/logout-button";
 
 type ProfileDetails = {
   full_name: string;
@@ -62,42 +63,47 @@ export default async function ProfilePage() {
   return (
     <div className="space-y-6">
       <section className="glass-card rounded-2xl p-6 sm:p-8">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-          <div className="grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-xl border border-gold-400/30 bg-gold-400/10">
-            {profile?.avatar_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
-            ) : (
-              <UserRound className="h-10 w-10 text-gold-400" aria-hidden />
-            )}
-          </div>
-          <div>
-            <p className="text-sm font-bold uppercase tracking-[0.25em] text-pitch-600 dark:text-gold-400">
-              Player profile
-            </p>
-            <h1 className="mt-3 text-3xl font-black text-slate-900 dark:text-white">
-              {profile?.full_name ?? "TurfTitans user"}
-            </h1>
-            <div className="mt-4 grid gap-2 text-sm text-slate-600 dark:text-slate-300">
-              <p className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-pitch-500 dark:text-gold-400" aria-hidden />
-                {user.email}
-              </p>
-              {profile?.role && (
-                <p className="flex items-center gap-2 capitalize">
-                  <UserRound className="h-4 w-4 text-pitch-500 dark:text-gold-400" aria-hidden />
-                  Role: {profile.role.replace("_", " ")}
-                </p>
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+            <div className="grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-xl border border-gold-400/30 bg-gold-400/10">
+              {profile?.avatar_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <UserRound className="h-10 w-10 text-gold-400" aria-hidden />
               )}
-              <p className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-pitch-500 dark:text-gold-400" aria-hidden />
-                {profile?.phone ?? "Phone not added"}
-              </p>
-              <p className="flex items-center gap-2">
-                <CalendarDays className="h-4 w-4 text-pitch-500 dark:text-gold-400" aria-hidden />
-                Joined {new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(new Date(user.created_at))}
-              </p>
             </div>
+            <div>
+              <p className="text-sm font-bold uppercase tracking-[0.25em] text-pitch-600 dark:text-gold-400">
+                Player profile
+              </p>
+              <h1 className="mt-3 text-3xl font-black text-slate-900 dark:text-white">
+                {profile?.full_name ?? "TurfTitans user"}
+              </h1>
+              <div className="mt-4 grid gap-2 text-sm text-slate-600 dark:text-slate-300">
+                <p className="flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-pitch-500 dark:text-gold-400" aria-hidden />
+                  {user.email}
+                </p>
+                {profile?.role && (
+                  <p className="flex items-center gap-2 capitalize">
+                    <UserRound className="h-4 w-4 text-pitch-500 dark:text-gold-400" aria-hidden />
+                    Role: {profile.role.replace("_", " ")}
+                  </p>
+                )}
+                <p className="flex items-center gap-2">
+                  <Phone className="h-4 w-4 text-pitch-500 dark:text-gold-400" aria-hidden />
+                  {profile?.phone ?? "Phone not added"}
+                </p>
+                <p className="flex items-center gap-2">
+                  <CalendarDays className="h-4 w-4 text-pitch-500 dark:text-gold-400" aria-hidden />
+                  Joined {new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(new Date(user.created_at))}
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="mt-2 sm:mt-0">
+            <LogoutButton />
           </div>
         </div>
       </section>
