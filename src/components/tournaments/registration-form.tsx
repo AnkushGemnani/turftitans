@@ -14,6 +14,7 @@ type RegistrationFormProps = {
     fullName: string;
     phone: string | null;
     role: string | null;
+    avatarUrl: string | null;
   } | null;
   onCancel?: () => void;
 };
@@ -68,8 +69,52 @@ export function RegistrationForm({
           <Notice type="success" message={state.message} />
         ) : null}
 
-        <form action={formAction} className="space-y-4">
+        <form action={formAction} className="space-y-4" encType="multipart/form-data">
           <input type="hidden" name="tournamentId" value={tournamentId} />
+
+          {/* Profile Picture Verification or Upload */}
+          {userProfile?.avatarUrl ? (
+            <div className="flex items-center gap-3 bg-slate-50 dark:bg-pitch-950/20 p-3.5 rounded-xl border border-slate-150 dark:border-white/5">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={userProfile.avatarUrl}
+                alt="Profile Preview"
+                className="h-12 w-12 rounded-xl object-cover border border-slate-200 dark:border-white/10 shadow-sm"
+              />
+              <div>
+                <span className="text-[10px] font-bold text-pitch-600 dark:text-gold-400 uppercase tracking-wider block">
+                  Profile Picture Verified
+                </span>
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">
+                  This picture will be shown in the live auction.
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-slate-50 dark:bg-pitch-950/20 p-4 rounded-xl border border-slate-150 dark:border-white/5 space-y-2">
+              <label className="block">
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-200 block mb-1">
+                  Upload Profile Picture <span className="text-red-500">*</span>
+                </span>
+                <p className="text-[10px] text-slate-400 dark:text-slate-500 mb-2 leading-relaxed">
+                  A profile picture is required to register. Make sure it clearly shows your face for the auction console. Max size 3 MB.
+                </p>
+                <input
+                  type="file"
+                  name="profileImage"
+                  accept="image/*"
+                  required
+                  className="block w-full text-xs text-slate-500 dark:text-slate-400
+                    file:mr-4 file:py-1.5 file:px-3.5
+                    file:rounded-xl file:border-0
+                    file:text-xs file:font-bold
+                    file:bg-pitch-500/10 file:text-pitch-600 dark:file:text-pitch-400
+                    hover:file:bg-pitch-500/20
+                    cursor-pointer border border-slate-200 dark:border-white/10 rounded-xl p-2 bg-white dark:bg-pitch-950/40 focus:outline-none"
+                />
+              </label>
+            </div>
+          )}
 
           {/* User pre-filled fields block */}
           <div className="grid gap-4 sm:grid-cols-3">

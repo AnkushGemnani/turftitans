@@ -11,6 +11,7 @@ type RegistrationSectionProps = {
     fullName: string;
     phone: string | null;
     role: string | null;
+    avatarUrl: string | null;
   } | null;
 };
 

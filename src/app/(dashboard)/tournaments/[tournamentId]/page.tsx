@@ -110,7 +110,7 @@ export default async function TournamentDetailsPage({
   // 2. Fetch user's profile details
   const { data: userProfile } = await supabase
     .from("profiles")
-    .select("full_name, phone, role")
+    .select("full_name, phone, role, avatar_url")
     .eq("id", user.id)
     .single();
 
@@ -544,6 +544,7 @@ export default async function TournamentDetailsPage({
                   fullName: userProfile?.full_name ?? "",
                   phone: userProfile?.phone ?? null,
                   role: userProfile?.role ?? null,
+                  avatarUrl: userProfile?.avatar_url ?? null,
                 }}
               />
             )}
