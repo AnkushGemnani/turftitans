@@ -99,9 +99,9 @@ export async function submitPaymentProofAction(
       return { status: "error", message: "Allowed formats are JPG, PNG, and WEBP." };
     }
 
-    const maxSizeBytes = 5 * 1024 * 1024;
+    const maxSizeBytes = 4 * 1024 * 1024;
     if (screenshotFile.size > maxSizeBytes) {
-      return { status: "error", message: "Screenshot file must be smaller than 5 MB." };
+      return { status: "error", message: "Screenshot file must be smaller than 4 MB." };
     }
 
     // 4. Upload file to private 'payment-screenshots' storage bucket

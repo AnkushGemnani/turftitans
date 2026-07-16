@@ -33,6 +33,7 @@ export function PaymentProofSection({
   const [copied, setCopied] = useState(false);
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [clientError, setClientError] = useState<string | null>(null);
 
   const handleCopyUPI = () => {
     if (!upiId) return;
@@ -114,6 +115,7 @@ export function PaymentProofSection({
         <form action={formAction} className="space-y-4">
           <h4 className="text-xs uppercase tracking-wider font-bold text-slate-400 dark:text-slate-500">2. Upload Screenshot</h4>
           
+          {clientError && <Notice type="error" message={clientError} />}
           {state.status === "error" && <Notice type="error" message={state.message} />}
           {state.status === "success" && <Notice type="success" message={state.message} />}
 
@@ -142,7 +144,7 @@ export function PaymentProofSection({
                     <UploadCloud className="h-5 w-5 text-pitch-600 dark:text-pitch-400" aria-hidden />
                   </div>
                   <p className="mt-3 text-xs font-semibold text-slate-800 dark:text-white">Upload receipt screenshot</p>
-                  <p className="mt-1 text-[10px] text-slate-500">JPG, PNG, or WEBP (Max 5 MB)</p>
+                  <p className="mt-1 text-[10px] text-slate-500">JPG, PNG, or WEBP (Max 4 MB)</p>
                 </div>
               )}
             </label>
@@ -155,16 +157,26 @@ export function PaymentProofSection({
               required
               onChange={(event) => {
                 const file = event.target.files?.[0];
+                setClientError(null);
                 if (file) {
                   const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
                   if (!allowedTypes.includes(file.type)) {
-                    alert("Only JPG, PNG, and WEBP image formats are supported.");
+                    setClientError("Only JPG, PNG, and WEBP image formats are supported.");
+                    setSelectedFile(null);
+                    setScreenshotPreview(null);
+                    event.target.value = "";
                     return;
                   }
-                  if (file.size > 5 * 1024 * 1024) {
-                    alert("Maximum size is 5 MB.");
+                  
+                  const maxSizeBytes = 4 * 1024 * 1024; // 4 MB to stay under Vercel request body limits
+                  if (file.size > maxSizeBytes) {
+                    setClientError("Screenshot file must be smaller than 4 MB.");
+                    setSelectedFile(null);
+                    setScreenshotPreview(null);
+                    event.target.value = "";
                     return;
                   }
+                  
                   setSelectedFile(file);
                   setScreenshotPreview(URL.createObjectURL(file));
                 }

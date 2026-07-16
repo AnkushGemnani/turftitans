@@ -50,10 +50,10 @@ export async function registerForTournamentAction(
       return { status: "error", message: "Missing required registration details." };
     }
 
-    // Retrieve user's profile to get their role and avatar_url
+    // Retrieve user's profile to get their details
     const { data: profile, error: profileError } = await userClient
       .from("profiles")
-      .select("role, avatar_url")
+      .select("role, avatar_url, full_name")
       .eq("id", user.id)
       .single();
 
@@ -63,6 +63,19 @@ export async function registerForTournamentAction(
 
     let role = profile.role;
     let avatarUrl = profile.avatar_url;
+
+    // Handle full name update
+    const submittedFullName = formData.get("fullName") as string;
+    if (submittedFullName && submittedFullName !== profile.full_name) {
+      const { error: nameError } = await userClient
+        .from("profiles")
+        .update({ full_name: submittedFullName })
+        .eq("id", user.id);
+      
+      if (nameError) {
+        return { status: "error", message: `Failed to update your name: ${nameError.message}` };
+      }
+    }
 
     // Handle missing profile picture
     if (!avatarUrl) {

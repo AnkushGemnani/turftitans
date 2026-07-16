@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { registerForTournamentAction, type ActionState } from "@/app/(dashboard)/tournaments/registration-actions";
 import { Notice } from "@/components/ui/notice";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -31,6 +31,7 @@ export function RegistrationForm({
   onCancel,
 }: RegistrationFormProps) {
   const [state, formAction] = useActionState(registerForTournamentAction, initialState);
+  const [clientError, setClientError] = useState<string | null>(null);
 
   // Focus layout scroll on success/error notice
   useEffect(() => {
@@ -62,6 +63,9 @@ export function RegistrationForm({
           </p>
         </div>
 
+        {clientError ? (
+          <Notice type="error" message={clientError} />
+        ) : null}
         {state.status === "error" ? (
           <Notice type="error" message={state.message} />
         ) : null}
@@ -104,6 +108,24 @@ export function RegistrationForm({
                   name="profileImage"
                   accept="image/*"
                   required
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    setClientError(null);
+                    if (file) {
+                      const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+                      if (!allowedTypes.includes(file.type)) {
+                        setClientError("Only JPG, PNG, and WEBP image formats are supported.");
+                        event.target.value = "";
+                        return;
+                      }
+                      const maxSizeBytes = 3 * 1024 * 1024; // 3 MB
+                      if (file.size > maxSizeBytes) {
+                        setClientError("Profile picture must be smaller than 3 MB.");
+                        event.target.value = "";
+                        return;
+                      }
+                    }
+                  }}
                   className="block w-full text-xs text-slate-500 dark:text-slate-400
                     file:mr-4 file:py-1.5 file:px-3.5
                     file:rounded-xl file:border-0
@@ -120,11 +142,19 @@ export function RegistrationForm({
           <div className="grid gap-4 sm:grid-cols-3">
             {/* Full Name */}
             <div>
-              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 block mb-2">Full Name</span>
-              <div className="h-11 w-full rounded-xl border border-slate-200 dark:border-white/5 bg-slate-100/50 dark:bg-pitch-950/40 px-3 flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300 select-none">
-                <User className="h-3.5 w-3.5 text-slate-400" />
-                <span className="truncate">{fullName}</span>
-              </div>
+              <label className="block">
+                <span className="text-xs font-bold text-slate-500 dark:text-slate-400 block mb-2">Full Name</span>
+                <div className="relative">
+                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                  <input
+                    type="text"
+                    name="fullName"
+                    defaultValue={fullName}
+                    required
+                    className="h-11 w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-pitch-950/70 pl-10 pr-3 text-xs font-bold text-slate-900 dark:text-white outline-none transition focus:border-pitch-500 dark:focus:border-pitch-400 focus:ring-1 focus:ring-pitch-500/50"
+                  />
+                </div>
+              </label>
             </div>
 
             {/* Email Address */}
