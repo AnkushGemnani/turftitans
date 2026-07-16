@@ -93,7 +93,6 @@ create table public.tournaments (
   status public.tournament_status not null default 'open',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  constraint one_tournament_per_creator unique (creator_id),
   constraint valid_tournament_dates check (end_date is null or end_date >= start_date)
 );
 
