@@ -162,7 +162,7 @@ begin
     new.id,
     coalesce(nullif(new.raw_user_meta_data ->> 'full_name', ''), split_part(new.email, '@', 1)),
     nullif(new.raw_user_meta_data ->> 'phone', ''),
-    nullif(new.raw_user_meta_data ->> 'avatar_url', ''),
+    coalesce(nullif(new.raw_user_meta_data ->> 'avatar_url', ''), nullif(new.raw_user_meta_data ->> 'picture', '')),
     (new.raw_user_meta_data ->> 'role')::public.player_role
   )
   on conflict (id) do update
