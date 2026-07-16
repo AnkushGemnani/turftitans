@@ -77,61 +77,59 @@ export async function registerForTournamentAction(
       }
     }
 
-    // Handle missing profile picture
-    if (!avatarUrl) {
-      const profileImageFile = formData.get("profileImage") as File | null;
-      if (!profileImageFile || profileImageFile.size === 0) {
-        return { status: "error", message: "Profile picture is required." };
-      }
-
-      if (!profileImageFile.type.startsWith("image/")) {
-        return { status: "error", message: "Profile picture must be an image file." };
-      }
-
-      const maxSizeBytes = 3 * 1024 * 1024;
-      if (profileImageFile.size > maxSizeBytes) {
-        return { status: "error", message: "Profile picture must be smaller than 3 MB." };
-      }
-
-      // Helper to get file extension
-      const getFileExtension = (file: File) => {
-        const extension = file.name.split(".").pop()?.toLowerCase();
-        return extension && /^[a-z0-9]+$/.test(extension) ? extension : "jpg";
-      };
-
-      const adminClient = createAdminClient();
-      const fileExt = getFileExtension(profileImageFile);
-      const path = `avatars/${crypto.randomUUID()}.${fileExt}`;
-
-      const { error: uploadError } = await adminClient.storage
-        .from("profile-images")
-        .upload(path, profileImageFile, {
-          contentType: profileImageFile.type,
-          upsert: false,
-        });
-
-      if (uploadError) {
-        return { status: "error", message: `Profile picture upload failed: ${uploadError.message}` };
-      }
-
-      const { data: { publicUrl } } = adminClient.storage
-        .from("profile-images")
-        .getPublicUrl(path);
-
-      // Update the user's profile with the uploaded avatar URL
-      const { error: updateAvatarError } = await userClient
-        .from("profiles")
-        .update({ avatar_url: publicUrl })
-        .eq("id", user.id);
-
-      if (updateAvatarError) {
-        // Cleanup uploaded file if DB update fails
-        await adminClient.storage.from("profile-images").remove([path]);
-        return { status: "error", message: `Failed to save your profile picture: ${updateAvatarError.message}` };
-      }
-
-      avatarUrl = publicUrl;
+    // Process profile picture upload (required for every registration)
+    const profileImageFile = formData.get("profileImage") as File | null;
+    if (!profileImageFile || profileImageFile.size === 0) {
+      return { status: "error", message: "Profile picture is required." };
     }
+
+    if (!profileImageFile.type.startsWith("image/")) {
+      return { status: "error", message: "Profile picture must be an image file." };
+    }
+
+    const maxSizeBytes = 3 * 1024 * 1024;
+    if (profileImageFile.size > maxSizeBytes) {
+      return { status: "error", message: "Profile picture must be smaller than 3 MB." };
+    }
+
+    // Helper to get file extension
+    const getFileExtension = (file: File) => {
+      const extension = file.name.split(".").pop()?.toLowerCase();
+      return extension && /^[a-z0-9]+$/.test(extension) ? extension : "jpg";
+    };
+
+    const adminClient = createAdminClient();
+    const fileExt = getFileExtension(profileImageFile);
+    const path = `avatars/${crypto.randomUUID()}.${fileExt}`;
+
+    const { error: uploadError } = await adminClient.storage
+      .from("profile-images")
+      .upload(path, profileImageFile, {
+        contentType: profileImageFile.type,
+        upsert: false,
+      });
+
+    if (uploadError) {
+      return { status: "error", message: `Profile picture upload failed: ${uploadError.message}` };
+    }
+
+    const { data: { publicUrl } } = adminClient.storage
+      .from("profile-images")
+      .getPublicUrl(path);
+
+    // Update the user's profile with the uploaded avatar URL
+    const { error: updateAvatarError } = await userClient
+      .from("profiles")
+      .update({ avatar_url: publicUrl })
+      .eq("id", user.id);
+
+    if (updateAvatarError) {
+      // Cleanup uploaded file if DB update fails
+      await adminClient.storage.from("profile-images").remove([path]);
+      return { status: "error", message: `Failed to save your profile picture: ${updateAvatarError.message}` };
+    }
+
+    avatarUrl = publicUrl;
 
     if (!role) {
       const submittedRole = formData.get("role") as string;
@@ -208,7 +206,6 @@ export async function registerForTournamentAction(
     const isCreator = tournament.creator_id === user.id;
 
     // Use admin client to insert registration to bypass t.creator_id <> auth.uid() check
-    const adminClient = createAdminClient();
     const { error: insertError } = await adminClient
       .from("registrations")
       .insert({
